@@ -23,7 +23,10 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true, allowExportNames: ['Route'] },
+      ],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -37,6 +40,14 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: 2022,
       globals: { ...globals.node },
+    },
+  },
+  {
+    // TanStack Router file-based routes export a `Route` object alongside
+    // their component by design — the fast-refresh rule doesn't fit here.
+    files: ['src/routes/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
   prettier
