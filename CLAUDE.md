@@ -3,6 +3,7 @@
 > This file is the source of truth for Claude Code (and other AI agents) working on this repo. It consolidates the business spec and the technical decisions into a single working contract.
 >
 > **Full references** (read these for deep context, do not duplicate here):
+>
 > - Business & product: [`PROSESA-SYSTEM-SPEC.md`](./PROSESA-SYSTEM-SPEC.md)
 > - Technical rationale: [`ProsesaOS-technical-decisions.md`](./ProsesaOS-technical-decisions.md)
 >
@@ -15,6 +16,7 @@
 **ProsesaOS** is a web-based business management system for **Prosesa Diseño y Publicidad** (print & advertising shop, Ciudad del Carmen, Campeche, Mexico). It replaces handwritten notes, daily Excel reconciliation, and manual stock checks.
 
 **Core capabilities (MVP):**
+
 1. Point of Sale — counter sales and project sales
 2. Product/service catalog with fixed and variable pricing
 3. **Multi-company** — two legal entities (razones sociales) with shared catalog and inventory, independent folio sequences
@@ -25,6 +27,7 @@
 8. User management with 2 roles: `Admin`, `Ventas/Recepción`
 
 **Stretch (deliver only if Phase 1 scope is stable):**
+
 - Kanban board view on top of the work orders list
 - Lightweight read-only dashboard (revenue, stage counts, low stock)
 
@@ -34,23 +37,23 @@
 
 ## 2. Tech stack (locked)
 
-| Layer | Choice |
-|---|---|
-| Build tool | Vite |
-| Framework | React (latest stable that ships with Vite) + TypeScript |
-| Styling | Tailwind CSS |
-| UI primitives | shadcn/ui — components live in `src/components/ui/`, we own them |
-| Router | TanStack Router (type-safe routes + params) |
-| Server state | TanStack Query |
-| Client state | React context or Zustand (only when Query is not appropriate) |
-| Drag & drop | dnd-kit (only if Kanban stretch ships) |
-| Backend | Supabase (Postgres, Auth, Storage, Realtime, Edge Functions) |
-| DB client | `@supabase/supabase-js` |
-| Env validation | zod |
-| Hosting (frontend) | Vercel Pro |
-| Hosting (backend) | Supabase Pro (prod) + Supabase Free (staging) |
-| DNS / proxy | Cloudflare — **deferred** until domain is decided |
-| PDF generation | TBD per need — prefer server-side (Edge Function) for detailed notes, browser print for thermal tickets |
+| Layer              | Choice                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------- |
+| Build tool         | Vite                                                                                                    |
+| Framework          | React (latest stable that ships with Vite) + TypeScript                                                 |
+| Styling            | Tailwind CSS                                                                                            |
+| UI primitives      | shadcn/ui — components live in `src/components/ui/`, we own them                                        |
+| Router             | TanStack Router (type-safe routes + params)                                                             |
+| Server state       | TanStack Query                                                                                          |
+| Client state       | React context or Zustand (only when Query is not appropriate)                                           |
+| Drag & drop        | dnd-kit (only if Kanban stretch ships)                                                                  |
+| Backend            | Supabase (Postgres, Auth, Storage, Realtime, Edge Functions)                                            |
+| DB client          | `@supabase/supabase-js`                                                                                 |
+| Env validation     | zod                                                                                                     |
+| Hosting (frontend) | Vercel Pro                                                                                              |
+| Hosting (backend)  | Supabase Pro (prod) + Supabase Free (staging)                                                           |
+| DNS / proxy        | Cloudflare — **deferred** until domain is decided                                                       |
+| PDF generation     | TBD per need — prefer server-side (Edge Function) for detailed notes, browser print for thermal tickets |
 
 No custom backend. The Supabase SDK is called directly from the frontend, gated by RLS.
 
@@ -172,7 +175,7 @@ These are principles, not a frozen schema. Design actual tables from these.
   `En instalación` is skippable. Backward transitions are allowed and must be logged.
 - An order should warn (not block) when marked `Entregado` while unpaid. Admin can override.
 - Stock can go negative — warn but allow.
-- Counter sales don't generate work orders; project sales do (toggle: *"Genera orden de trabajo"*).
+- Counter sales don't generate work orders; project sales do (toggle: _"Genera orden de trabajo"_).
 - **Corte de caja reconciles** (cash drawer model): the day opens with a declared opening cash amount; the end-of-day report computes expected cash = opening + cash sales − cash payouts, compares it to a declared counted amount, and surfaces the difference.
 
 ---
@@ -181,9 +184,9 @@ These are principles, not a frozen schema. Design actual tables from these.
 
 MVP roles (stored in `profiles.role`):
 
-| Role | Capabilities |
-|---|---|
-| `admin` | Full access. Cancel sales notes, adjust inventory, generate corte de caja, manage users/catalog/companies. |
+| Role     | Capabilities                                                                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin`  | Full access. Cancel sales notes, adjust inventory, generate corte de caja, manage users/catalog/companies.                                                    |
 | `ventas` | Create sales notes and work orders, update work order status, record payments, read inventory, read customers. Cannot cancel notes or generate corte de caja. |
 
 - Auth: Supabase Auth (email + password). Public signup **disabled** in the Supabase dashboard.
@@ -215,6 +218,7 @@ All printed documents in Spanish (Mexico), with the correct razón social, RFC, 
 - Never commit `.env*` files. `.env.example` is the documented surface.
 
 Required vars (MVP):
+
 ```
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
@@ -227,6 +231,7 @@ VITE_SUPABASE_ANON_KEY
 - **ESLint v9 + typescript-eslint + Prettier** (config per tech decisions). `no-explicit-any` and `no-unused-vars` are errors; `no-console` is a warning.
 - **Prettier**: no semicolons, single quotes, 2-space tabs, `trailingComma: es5`, `printWidth: 100`.
 - **Conventional Commits** enforced via commitlint + Husky: `feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:`. ESLint runs pre-commit and blocks on errors.
+- **Branch naming** enforced via Husky (`pre-commit` + `pre-push`): `<type>/<slug>` where `<type>` is one of `feat | fix | chore | refactor | test | docs`. Slug is lowercase (`a-z0-9._-`). Example: `feat/lit-7-eslint-prettier-husky`. Do **not** use a personal username as the prefix — Linear's default `<user>/<ticket>-...` branch names must be renamed before the first commit. `main` is the only allowed long-lived branch.
 - **Supabase types** regenerated after every schema change:
   ```bash
   supabase gen types typescript --project-id <id> > src/types/database.ts
@@ -312,6 +317,6 @@ See SPEC §9 for scoping detail on each.
 
 Tracks changes to this agent contract only (rules, scope decisions, stack locks). Product/release changes live in the root [`README.md`](./README.md#changelog).
 
-| Date | Change |
-|---|---|
+| Date       | Change                              |
+| ---------- | ----------------------------------- |
 | 2026-04-14 | Initial agent contract for Phase 1. |
