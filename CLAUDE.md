@@ -6,7 +6,7 @@
 > - Business & product: [`PROSESA-SYSTEM-SPEC.md`](./PROSESA-SYSTEM-SPEC.md)
 > - Technical rationale: [`ProsesaOS-technical-decisions.md`](./ProsesaOS-technical-decisions.md)
 >
-> `AGENTS.md` is a mirror of this file — keep them in sync.
+> `AGENTS.md` is a stub that points here — this file is the single source. Do not duplicate content.
 
 ---
 
@@ -308,6 +308,8 @@ See SPEC §9 for scoping detail on each.
 
 ## Changelog
 
+Tracks changes to this agent contract only (rules, scope decisions, stack locks). Product/release changes live in the root [`README.md`](./README.md#changelog).
+
 | Date | Change |
 |---|---|
-| 2026-04-14 | Initial consolidated agent contract for Phase 1. |
+| 2026-04-14 | Initial agent contract for Phase 1. |
