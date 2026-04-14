@@ -267,6 +267,6 @@ erDiagram
 
 ## Changelog
 
-| Date | Change |
-|---|---|
+| Date       | Change                                     |
+| ---------- | ------------------------------------------ |
 | 2026-04-14 | Initial architecture diagrams for Phase 1. |

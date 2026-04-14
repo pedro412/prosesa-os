@@ -41,13 +41,13 @@ Each stage has defined system actions, role-based access, and real-time visibili
 
 ## Core Modules (MVP Scope)
 
-| Module | Description |
-|---|---|
-| **Kanban Board** | Visual project pipeline with drag and drop |
-| **POS** | Counter sales, partial payments, daily cash close |
-| **Inventory** | Materials tracking, auto-deduction on production orders, low stock alerts |
-| **Dashboard** | Real-time project visibility, revenue, stage distribution |
-| **Users & Roles** | Salesperson, Designer, Production, Installer, Admin |
+| Module            | Description                                                               |
+| ----------------- | ------------------------------------------------------------------------- |
+| **Kanban Board**  | Visual project pipeline with drag and drop                                |
+| **POS**           | Counter sales, partial payments, daily cash close                         |
+| **Inventory**     | Materials tracking, auto-deduction on production orders, low stock alerts |
+| **Dashboard**     | Real-time project visibility, revenue, stage distribution                 |
+| **Users & Roles** | Salesperson, Designer, Production, Installer, Admin                       |
 
 ---
 
@@ -61,21 +61,25 @@ Each stage has defined system actions, role-based access, and real-time visibili
 ## Infrastructure
 
 ### Supabase
+
 - **Production:** Pro plan — $25/month
 - **Staging:** Free plan — $0 (pauses after 1 week of inactivity, acceptable for QA)
 - **Why Supabase over Railway:** Auth + RLS out of the box, Storage for evidence photos, Realtime for live Kanban updates — all without writing a backend
 - **No custom backend needed** — Supabase SDK called directly from the frontend
 
 ### Vercel
+
 - **Plan:** Pro — $20/month (already paid)
 - **Benefits:** Preview deployments per PR (useful for Karina's QA), environment variables per environment
 
 ### Cloudflare
+
 - **Domain registrar** — cost price, no markup
 - **Benefits:** DNS management, DDoS protection, proxy hides real IP, free SSL
 - **Recommended domain:** `prosesaos.com` or `app.prosesa.com` if they have a corporate domain
 
 ### Monthly Infrastructure Cost
+
 ```
 Vercel Pro      $20/month
 Supabase Pro    $25/month
@@ -83,23 +87,25 @@ Cloudflare       $0/month  (+~$10/year for domain)
 ─────────────────────────
 Total           $45/month + domain
 ```
+
 > ⚠️ Bill infrastructure separately from development fee — it's the client's system cost, not your service.
 
 ---
 
 ## Frontend Stack
 
-| Tool | Decision |
-|---|---|
-| **Build tool** | Vite (SSR not needed) |
-| **Framework** | React 19 + TypeScript |
-| **Styling** | Tailwind CSS + shadcn/ui |
-| **Router** | TanStack Router (fully type-safe routes and params) |
-| **Data fetching** | TanStack Query (cache, loading states, optimistic updates) |
-| **Drag and drop** | dnd-kit (replaces unmaintained react-beautiful-dnd) |
-| **Database client** | Supabase JS SDK |
+| Tool                | Decision                                                   |
+| ------------------- | ---------------------------------------------------------- |
+| **Build tool**      | Vite (SSR not needed)                                      |
+| **Framework**       | React 19 + TypeScript                                      |
+| **Styling**         | Tailwind CSS + shadcn/ui                                   |
+| **Router**          | TanStack Router (fully type-safe routes and params)        |
+| **Data fetching**   | TanStack Query (cache, loading states, optimistic updates) |
+| **Drag and drop**   | dnd-kit (replaces unmaintained react-beautiful-dnd)        |
+| **Database client** | Supabase JS SDK                                            |
 
 ### Why shadcn/ui
+
 Solves the component consistency problem from motoisla-platform — components live in your repo under `src/components/ui/`, you own them, no overriding external library styles. Prevents duplicated/inconsistent UI components across the project.
 
 ---
@@ -132,6 +138,7 @@ AGENTS.md
 ```
 
 ### Rule
+
 Never write a raw `<button>` or `<input>` directly in a feature component. Always import from `src/components/ui/`.
 
 ---
@@ -149,6 +156,7 @@ VITE_SUPABASE_ANON_KEY=...
 ```
 
 ### Typed env vars with Zod
+
 ```ts
 // src/lib/env.ts
 import { z } from 'zod'
@@ -166,17 +174,20 @@ export const env = envSchema.parse(import.meta.env)
 ## TypeScript & Code Quality
 
 ### ESLint v9 + typescript-eslint + Prettier
+
 ```bash
 npm install -D eslint @eslint/js typescript-eslint eslint-plugin-react-hooks eslint-plugin-react-refresh prettier eslint-config-prettier
 ```
 
 Key rules enforced:
+
 - `@typescript-eslint/no-explicit-any: error` — no `any` allowed
 - `@typescript-eslint/no-unused-vars: error`
 - `no-console: warn`
 - `react-hooks/rules-of-hooks` enforced
 
 ### Prettier config
+
 ```json
 {
   "semi": false,
@@ -188,9 +199,11 @@ Key rules enforced:
 ```
 
 ### Conventional Commits (Husky + commitlint)
+
 ```bash
 npm install -D @commitlint/cli @commitlint/config-conventional husky
 ```
+
 Format: `feat:`, `fix:`, `chore:`, `refactor:`, `test:`  
 Husky runs ESLint before every commit — blocks push if errors exist.
 
@@ -199,6 +212,7 @@ Husky runs ESLint before every commit — blocks push if errors exist.
 ## Supabase Type Generation
 
 Add to `package.json` scripts and run after every schema change:
+
 ```bash
 supabase gen types typescript --project-id xxx > src/types/database.ts
 ```
@@ -210,6 +224,7 @@ supabase gen types typescript --project-id xxx > src/types/database.ts
 Two files in repo root — Claude Code reads `CLAUDE.md` first:
 
 **`CLAUDE.md` / `AGENTS.md`** should include:
+
 - Full stack declaration
 - Folder structure rules
 - Component rules (always use `src/components/ui/`)
@@ -226,12 +241,14 @@ Two files in repo root — Claude Code reads `CLAUDE.md` first:
 **Don't start with full E2E coverage** — UI changes too fast early on and broken tests become a maintenance burden.
 
 **Start with 4 critical flow tests only:**
+
 1. Login by role → sees only what their role allows
 2. Create quotation → appears on Kanban board
 3. Move project between stages → reflects in real-time on board
 4. Inventory deduction when production order is created
 
 Complement with:
+
 - **Karina** doing manual exploratory QA on staging
 - **TypeScript** catching errors before any test runs
 
@@ -263,9 +280,9 @@ RLS: Admin read-only, no one can modify or delete audit records.
 
 ## Bug Report Button
 
-Floating action button in the UI → modal with description field + auto-captured context (current URL, user role, timestamp, browser).  
+Floating action button in the UI → modal with description field + auto-captured context (current URL, user role, timestamp, browser).
 
-Storage: `bug_reports` table in Supabase + optional screenshot via `html2canvas` uploaded to Supabase Storage.  
+Storage: `bug_reports` table in Supabase + optional screenshot via `html2canvas` uploaded to Supabase Storage.
 
 **Future upgrade:** Sentry free tier for real stack traces.
 
@@ -274,14 +291,16 @@ Storage: `bug_reports` table in Supabase + optional screenshot via `html2canvas`
 ## Security
 
 ### Brute Force Protection
-| Layer | Implementation |
-|---|---|
-| Rate limiting | Supabase Auth built-in (configurable in dashboard) |
-| CAPTCHA | Cloudflare Turnstile — native Supabase integration, free up to 1M requests/month |
-| Disable public signup | Supabase → Authentication → disable "Allow new users to sign up" |
-| MFA for admin role | Supabase TOTP — enforce via TanStack Router middleware |
+
+| Layer                 | Implementation                                                                   |
+| --------------------- | -------------------------------------------------------------------------------- |
+| Rate limiting         | Supabase Auth built-in (configurable in dashboard)                               |
+| CAPTCHA               | Cloudflare Turnstile — native Supabase integration, free up to 1M requests/month |
+| Disable public signup | Supabase → Authentication → disable "Allow new users to sign up"                 |
+| MFA for admin role    | Supabase TOTP — enforce via TanStack Router middleware                           |
 
 ### General Security
+
 - RLS enabled on all tables — no exceptions
 - Never use `service_role` key in frontend
 - HTTPS enforced by default (Vercel + Cloudflare)
@@ -295,9 +314,11 @@ Storage: `bug_reports` table in Supabase + optional screenshot via `html2canvas`
 **Not required for this client:** SOC 2, ISO 27001, HIPAA — these apply to large enterprises or sensitive data (health, finance).
 
 **Required by Mexican law:**
+
 - **LFPDPPP** (Ley Federal de Protección de Datos Personales) — applies because the system stores personal data (client names, phones, emails)
 
 **Practical implications:**
+
 - Publish a Privacy Notice (Aviso de Privacidad) for Prosesa's end clients
 - RLS ensures each role only sees what they need
 - Client data exports restricted to admin role only

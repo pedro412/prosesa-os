@@ -1,0 +1,2 @@
+sh scripts/check-branch-name.sh
+npx lint-staged

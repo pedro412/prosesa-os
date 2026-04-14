@@ -26,16 +26,16 @@ Full business spec: [`PROSESA-SYSTEM-SPEC.md`](./PROSESA-SYSTEM-SPEC.md).
 
 ## Tech stack
 
-| Layer | Choice |
-|---|---|
-| Build | Vite |
-| Framework | React (latest) + TypeScript |
-| Styling | Tailwind CSS + shadcn/ui |
-| Router | TanStack Router |
-| Server state | TanStack Query |
-| Backend | Supabase (Postgres, Auth, Storage, Realtime) |
-| Hosting | Vercel Pro (frontend) + Supabase Pro (backend) |
-| DNS/proxy | Cloudflare (deferred until domain is decided) |
+| Layer        | Choice                                         |
+| ------------ | ---------------------------------------------- |
+| Build        | Vite                                           |
+| Framework    | React (latest) + TypeScript                    |
+| Styling      | Tailwind CSS + shadcn/ui                       |
+| Router       | TanStack Router                                |
+| Server state | TanStack Query                                 |
+| Backend      | Supabase (Postgres, Auth, Storage, Realtime)   |
+| Hosting      | Vercel Pro (frontend) + Supabase Pro (backend) |
+| DNS/proxy    | Cloudflare (deferred until domain is decided)  |
 
 Technical rationale: [`ProsesaOS-technical-decisions.md`](./ProsesaOS-technical-decisions.md).
 
@@ -91,10 +91,10 @@ See [`CLAUDE.md` §3](./CLAUDE.md#3-project-structure). In short:
 
 ## Environments
 
-| Env | Frontend | Backend |
-|---|---|---|
-| Production | Vercel Pro (`main` branch) | Supabase Pro — `prosesa-os-prod` |
-| Staging | Vercel preview URL per PR | Supabase Free — `prosesa-os-staging` |
+| Env        | Frontend                   | Backend                              |
+| ---------- | -------------------------- | ------------------------------------ |
+| Production | Vercel Pro (`main` branch) | Supabase Pro — `prosesa-os-prod`     |
+| Staging    | Vercel preview URL per PR  | Supabase Free — `prosesa-os-staging` |
 
 Manual QA on staging is owned by Karina.
 
@@ -120,14 +120,14 @@ See [`CLAUDE.md` §5](./CLAUDE.md#5-language-policy) for the full policy.
 
 ## Documentation
 
-| Document | Purpose |
-|---|---|
-| [`PROSESA-SYSTEM-SPEC.md`](./PROSESA-SYSTEM-SPEC.md) | Business context, module specs, rules, glossary |
-| [`ProsesaOS-technical-decisions.md`](./ProsesaOS-technical-decisions.md) | Technical rationale for stack and infra |
-| [`CLAUDE.md`](./CLAUDE.md) | Agent working contract — consolidated rules |
-| [`AGENTS.md`](./AGENTS.md) | Stub pointing to `CLAUDE.md` |
-| [`docs/linear-phase-1.md`](./docs/linear-phase-1.md) | Proposed Linear structure (milestones + tickets) for Phase 1 |
-| [`docs/architecture.md`](./docs/architecture.md) | Mermaid diagrams — module map, work order pipeline, deployment, data model |
+| Document                                                                 | Purpose                                                                    |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [`PROSESA-SYSTEM-SPEC.md`](./PROSESA-SYSTEM-SPEC.md)                     | Business context, module specs, rules, glossary                            |
+| [`ProsesaOS-technical-decisions.md`](./ProsesaOS-technical-decisions.md) | Technical rationale for stack and infra                                    |
+| [`CLAUDE.md`](./CLAUDE.md)                                               | Agent working contract — consolidated rules                                |
+| [`AGENTS.md`](./AGENTS.md)                                               | Stub pointing to `CLAUDE.md`                                               |
+| [`docs/linear-phase-1.md`](./docs/linear-phase-1.md)                     | Proposed Linear structure (milestones + tickets) for Phase 1               |
+| [`docs/architecture.md`](./docs/architecture.md)                         | Mermaid diagrams — module map, work order pipeline, deployment, data model |
 
 ---
 
@@ -138,6 +138,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are `YYY
 ### [Unreleased]
 
 #### Added
+
 - Business spec (`PROSESA-SYSTEM-SPEC.md`) consolidating Phase 1 requirements.
 - Technical decisions document (`ProsesaOS-technical-decisions.md`).
 - Agent contract (`CLAUDE.md`) with `AGENTS.md` pointing to it.
