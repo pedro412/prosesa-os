@@ -9,22 +9,22 @@ How the eight feature modules relate and which data they share across companies 
 ```mermaid
 graph TB
     subgraph shared["Shared across both companies"]
-        users["Users & Roles\nadmin / ventas"]
-        customers["Customers\nincl. Público en general"]
-        catalog["Catalog\ncategories + items"]
-        inventory["Inventory\nmaterials + movements"]
+        users["Users and Roles - admin / ventas"]
+        customers["Customers - incl. Publico en general"]
+        catalog["Catalog - categories and items"]
+        inventory["Inventory - materials and movements"]
     end
 
-    subgraph perco["Per company — company_id required on all transactions"]
-        pos["POS\ncounter sales / project sales"]
-        notes["Sales Notes\nper-company folios + IVA breakdown"]
-        orders["Work Orders\n7-stage pipeline"]
-        caja["Corte de Caja\ndaily cash reconciliation"]
+    subgraph perco["Per company - company_id required on all transactions"]
+        pos["POS - counter sales / project sales"]
+        notes["Sales Notes - per-company folios + IVA"]
+        orders["Work Orders - 7-stage pipeline"]
+        caja["Corte de Caja - daily cash reconciliation"]
     end
 
     subgraph cross["Cross-cutting"]
-        audit["Audit Log\nappend-only Postgres trigger"]
-        bugs["Bug Report FAB\nbug_reports table + Storage"]
+        audit["Audit Log - append-only Postgres trigger"]
+        bugs["Bug Report FAB - bug_reports table"]
     end
 
     users --> pos
@@ -47,32 +47,28 @@ graph TB
 Seven-stage pipeline. `En instalación` is skippable. Backward (rework) transitions are allowed and always logged.
 
 ```mermaid
-stateDiagram-v2
-    direction LR
+flowchart LR
+    s1[Cotizado]
+    s2[Anticipo recibido]
+    s3[En diseno]
+    s4[En produccion]
+    s5[En instalacion]
+    s6[Terminado]
+    s7[Entregado]
 
-    state "Cotizado" as s1
-    state "Anticipo recibido" as s2
-    state "En diseño" as s3
-    state "En producción" as s4
-    state "En instalación" as s5
-    state "Terminado" as s6
-    state "Entregado" as s7
+    s1 --> s2
+    s2 --> s3
+    s3 --> s4
+    s4 --> s5
+    s4 -->|skip installation| s6
+    s5 --> s6
+    s6 -->|warn if saldo pendiente| s7
 
-    [*] --> s1 : sale created
-    s1 --> s2 : payment recorded
-    s2 --> s3 : start design
-    s3 --> s4 : design approved
-    s4 --> s5 : production done
-    s4 --> s6 : skip installation
-    s5 --> s6 : installation done
-    s6 --> s7 : delivered to client ⚠ warn if saldo > 0
-    s7 --> [*]
-
-    s3 --> s1 : rework ↩
-    s4 --> s3 : rework ↩
-    s5 --> s4 : rework ↩
-    s6 --> s4 : rework ↩
-    s6 --> s5 : rework ↩
+    s3 -.->|rework| s1
+    s4 -.->|rework| s3
+    s5 -.->|rework| s4
+    s6 -.->|rework| s4
+    s6 -.->|rework| s5
 ```
 
 ---
@@ -84,22 +80,22 @@ End-to-end flow from opening the POS to generating a sales note and optionally a
 ```mermaid
 flowchart TD
     A([Open POS]) --> B{Company selected?}
-    B -- No --> C[Prompt to select\nactive company]
+    B -- No --> C[Prompt: select active company]
     C --> B
-    B -- Yes --> D[Add line items\ncatalog or freeform]
-    D --> E[Apply per-line discounts\npercent or fixed amount]
-    E --> F[IVA breakdown always visible\nsubtotal / IVA / total]
+    B -- Yes --> D[Add line items - catalog or freeform]
+    D --> E[Apply per-line discounts - percent or fixed]
+    E --> F[IVA breakdown: subtotal / IVA / total]
     F --> G{Payment method?}
-    G -- single --> H[Record single payment\nefectivo / transferencia / tarjeta]
-    G -- mixto --> I[Split across\nmultiple methods]
+    G -- single --> H[Record payment - efectivo / transferencia / tarjeta]
+    G -- mixto --> I[Split across multiple methods]
     H --> J
     I --> J
-    J[Create sales_note + lines + payments\ntransactional — folio auto-assigned per company]
-    J --> K{Genera orden\nde trabajo?}
-    K -- No --> L[Print thermal ticket\n80mm, window.print]
-    K -- Yes --> M[Create work_order\nstatus = Cotizado]
-    M --> N[Record anticipo\nsaldo pendiente tracked]
-    N --> O[Print detailed note\nletter-size PDF]
+    J[Create sales_note + lines + payments - folio auto-assigned]
+    J --> K{Genera orden de trabajo?}
+    K -- No --> L[Print thermal ticket - 80mm]
+    K -- Yes --> M[Create work_order - status Cotizado]
+    M --> N[Record anticipo - saldo pendiente tracked]
+    N --> O[Print detailed note - letter-size PDF]
 ```
 
 ---
@@ -112,18 +108,18 @@ graph LR
         browser["Browser"]
     end
 
-    subgraph cf["Cloudflare — pending domain decision"]
-        cloudflare["DDoS protection\nSSL termination\nTurnstile CAPTCHA"]
+    subgraph cf["Cloudflare - pending domain decision"]
+        cloudflare["DDoS protection + SSL + Turnstile CAPTCHA"]
     end
 
     subgraph vercel["Vercel Pro"]
-        vprod["main branch → production\nprosesaos.com TBD"]
-        vpreview["feature branches → preview URLs\nper-PR staging environment"]
+        vprod["main branch - production - prosesaos.com TBD"]
+        vpreview["feature branches - preview URLs per PR"]
     end
 
     subgraph supabase["Supabase"]
-        sbprod["prosesa-os-prod\nPro plan\nPostgres · Auth · Storage · Realtime"]
-        sbstg["prosesa-os-staging\nFree plan\npauses after 1 week inactivity"]
+        sbprod["prosesa-os-prod - Pro - Postgres + Auth + Storage + Realtime"]
+        sbstg["prosesa-os-staging - Free - pauses after 1 week inactivity"]
     end
 
     karina(["Karina QA"])
