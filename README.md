@@ -89,6 +89,16 @@ See [`CLAUDE.md` §3](./CLAUDE.md#3-project-structure). In short:
 
 ---
 
+## Server state (TanStack Query)
+
+- A single `QueryClient` is created in `src/lib/query-client.ts` and mounted at the app root via `QueryClientProvider`.
+- Defaults: `staleTime: 30s`, `retry: 1`, `refetchOnWindowFocus: false`, `mutations.retry: 0`.
+- **All** Supabase reads and writes live in `src/lib/queries/<domain>.ts` (see [`CLAUDE.md` §4 rule 2](./CLAUDE.md#4-hard-rules-for-the-agent)). Feature components never call the SDK directly.
+- Features consume data through hooks (`useQuery`, `useMutation`) from those query files. `useEffect` is not used for data fetching.
+- Devtools are enabled automatically in development only.
+
+---
+
 ## Environments
 
 | Env        | Frontend                   | Backend                              |
