@@ -125,7 +125,9 @@ See [`CLAUDE.md` §5](./CLAUDE.md#5-language-policy) for the full policy.
 | [`PROSESA-SYSTEM-SPEC.md`](./PROSESA-SYSTEM-SPEC.md) | Business context, module specs, rules, glossary |
 | [`ProsesaOS-technical-decisions.md`](./ProsesaOS-technical-decisions.md) | Technical rationale for stack and infra |
 | [`CLAUDE.md`](./CLAUDE.md) | Agent working contract — consolidated rules |
-| [`AGENTS.md`](./AGENTS.md) | Mirror of `CLAUDE.md` for other agents |
+| [`AGENTS.md`](./AGENTS.md) | Stub pointing to `CLAUDE.md` |
+| [`docs/linear-phase-1.md`](./docs/linear-phase-1.md) | Proposed Linear structure (milestones + tickets) for Phase 1 |
+| [`docs/architecture.md`](./docs/architecture.md) | Mermaid diagrams — module map, work order pipeline, deployment, data model |
 
 ---
 
@@ -138,8 +140,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are `YYY
 #### Added
 - Business spec (`PROSESA-SYSTEM-SPEC.md`) consolidating Phase 1 requirements.
 - Technical decisions document (`ProsesaOS-technical-decisions.md`).
-- Agent contract (`CLAUDE.md` + mirrored `AGENTS.md`).
+- Agent contract (`CLAUDE.md`) with `AGENTS.md` pointing to it.
 - This README.
+- Phase 1 Linear structure proposal (`docs/linear-phase-1.md`).
 
 ---
 

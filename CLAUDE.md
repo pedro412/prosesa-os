@@ -146,8 +146,9 @@ These are principles, not a frozen schema. Design actual tables from these.
 - Status changes on `work_orders` go into an append-only log: `old_status`, `new_status`, `changed_at`, `changed_by`, optional `note`. Backward transitions are allowed (rework).
 - Inventory movements are append-only. Types: `entrada`, `salida_por_orden`, `salida_manual`, `ajuste`. Each movement links to the work order if applicable and always to a user.
 - A sales note has 0..1 work order. A work order belongs to exactly one sales note and inherits `company_id` and `customer_id`.
-- Customers: `"Público en general"` is a sentinel, not a real row — counter sales can skip the customer FK.
+- Customers: `"Público en general"` is a seeded sentinel row per company settings, using the Mexican SAT generic RFC `XAXX010101000`. Counter sales default to this customer when none is selected.
 - Leave nullable FK space for things coming in Phase 2: `invoice_id` on sales notes, `purchase_order_id` on inventory entradas, `quotation_id` on sales notes.
+- **Work order line-item shape is an open research item** (see Linear ticket `R-1`): structured fields (dimensions, material, finishes) vs. freeform text vs. hybrid. Do not lock the schema without resolving this ticket — investigate how comparable shops model it and pick an approach that preserves future analytics.
 - **Audit log**: single `audit_logs` table + generic Postgres trigger attached to `sales_notes`, `work_orders`, `work_order_status_log`, `inventory_movements`, `pos_sales`. Schema per tech decisions:
   ```sql
   id uuid pk, table_name text, record_id uuid, action text,
@@ -172,6 +173,7 @@ These are principles, not a frozen schema. Design actual tables from these.
 - An order should warn (not block) when marked `Entregado` while unpaid. Admin can override.
 - Stock can go negative — warn but allow.
 - Counter sales don't generate work orders; project sales do (toggle: *"Genera orden de trabajo"*).
+- **Corte de caja reconciles** (cash drawer model): the day opens with a declared opening cash amount; the end-of-day report computes expected cash = opening + cash sales − cash payouts, compares it to a declared counted amount, and surfaces the difference.
 
 ---
 
