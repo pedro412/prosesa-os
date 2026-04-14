@@ -37,3 +37,6 @@ build
 # TS / Vite caches
 *.tsbuildinfo
 .cache
+
+# TanStack Router generated
+src/routeTree.gen.ts
