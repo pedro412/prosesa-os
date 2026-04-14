@@ -9,14 +9,14 @@ How the eight feature modules relate and which data they share across companies 
 ```mermaid
 graph TB
     subgraph shared["Shared across both companies"]
-        users["Users & Roles\nadmin | ventas"]
+        users["Users & Roles\nadmin / ventas"]
         customers["Customers\nincl. Público en general"]
         catalog["Catalog\ncategories + items"]
         inventory["Inventory\nmaterials + movements"]
     end
 
     subgraph perco["Per company — company_id required on all transactions"]
-        pos["POS\ncounter sales | project sales"]
+        pos["POS\ncounter sales / project sales"]
         notes["Sales Notes\nper-company folios + IVA breakdown"]
         orders["Work Orders\n7-stage pipeline"]
         caja["Corte de Caja\ndaily cash reconciliation"]
@@ -90,7 +90,7 @@ flowchart TD
     D --> E[Apply per-line discounts\npercent or fixed amount]
     E --> F[IVA breakdown always visible\nsubtotal / IVA / total]
     F --> G{Payment method?}
-    G -- single --> H[Record single payment\nefectivo | transferencia | tarjeta]
+    G -- single --> H[Record single payment\nefectivo / transferencia / tarjeta]
     G -- mixto --> I[Split across\nmultiple methods]
     H --> J
     I --> J
