@@ -2,15 +2,21 @@
 @import 'tw-animate-css';
 
 /*
- * Base design tokens for ProsesaOS.
- * Palette: shadcn "neutral" (OKLCH). Radius: 0.625rem (10px).
- * Font: system sans stack — switch to a product font in a later ticket.
- * Dark mode intentionally deferred (see LIT-6 acceptance).
+ * Brand theme tokens for ProsesaOS.
+ *
+ * Decisions driven by docs/brand.md (LIT-63):
+ *   - Primary accent: orange-yellow from the logo's dominant splash.
+ *   - Neutrals: warm grays (hue ~ 80, low chroma).
+ *   - Radius: 0.875rem (14px) to echo the logo's round silhouette.
+ *   - Shadows: warm-tinted so elevations don't read cool.
+ *   - Dark mode: tokens structured for it but not yet activated.
+ *
+ * Token names mirror shadcn so existing primitives pick them up without edits.
  */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
@@ -34,40 +40,113 @@
   --color-ring: var(--ring);
 
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     'Noto Sans', sans-serif;
+  --font-display: 'Manrope', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
+
+  /*
+   * Warm-tinted shadow tokens. Shadcn primitives read from
+   * --tw-shadow-color when available; these are the fallback values.
+   */
+  --shadow-xs: 0 1px 2px 0 oklch(0.2 0.02 80 / 0.06);
+  --shadow-sm: 0 1px 2px 0 oklch(0.2 0.02 80 / 0.05), 0 1px 3px 0 oklch(0.2 0.02 80 / 0.08);
+  --shadow-md: 0 4px 6px -1px oklch(0.2 0.02 80 / 0.08), 0 2px 4px -2px oklch(0.2 0.02 80 / 0.06);
+  --shadow-lg: 0 10px 15px -3px oklch(0.2 0.02 80 / 0.08), 0 4px 6px -4px oklch(0.2 0.02 80 / 0.05);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.875rem;
+
+  /* Warm neutrals: a hint of yellow (hue 80) at low chroma. */
+  --background: oklch(0.99 0.005 80);
+  --foreground: oklch(0.2 0.015 80);
+
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.2 0.015 80);
+
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.2 0.015 80);
+
+  /*
+   * Primary: the logo's orange-yellow family, shifted darker so white
+   * foreground text on it clears WCAG AA (4.5:1). The bright splash
+   * from the logo is preserved for --ring and accents, where it shines
+   * without needing to carry text.
+   */
+  --primary: oklch(0.58 0.17 50);
+  --primary-foreground: oklch(0.99 0.005 80);
+
+  --secondary: oklch(0.96 0.008 80);
+  --secondary-foreground: oklch(0.25 0.015 80);
+
+  --muted: oklch(0.96 0.008 80);
+  --muted-foreground: oklch(0.52 0.015 80);
+
+  --accent: oklch(0.94 0.015 80);
+  --accent-foreground: oklch(0.25 0.02 80);
+
+  --destructive: oklch(0.6 0.22 27);
+
+  --border: oklch(0.9 0.01 80);
+  --input: oklch(0.9 0.01 80);
+  --ring: oklch(0.73 0.17 65);
+}
+
+/*
+ * Dark mode is deferred per LIT-63. Tokens are stubbed so we can
+ * activate the theme later without touching every consumer.
+ */
+:root[data-theme='dark'] {
+  --background: oklch(0.18 0.015 80);
+  --foreground: oklch(0.96 0.008 80);
+
+  --card: oklch(0.22 0.015 80);
+  --card-foreground: oklch(0.96 0.008 80);
+
+  --popover: oklch(0.22 0.015 80);
+  --popover-foreground: oklch(0.96 0.008 80);
+
+  --primary: oklch(0.72 0.17 65);
+  --primary-foreground: oklch(0.18 0.015 80);
+
+  --secondary: oklch(0.26 0.015 80);
+  --secondary-foreground: oklch(0.96 0.008 80);
+
+  --muted: oklch(0.26 0.015 80);
+  --muted-foreground: oklch(0.7 0.015 80);
+
+  --accent: oklch(0.3 0.02 80);
+  --accent-foreground: oklch(0.96 0.008 80);
+
+  --destructive: oklch(0.65 0.22 27);
+
+  --border: oklch(0.3 0.01 80);
+  --input: oklch(0.3 0.01 80);
+  --ring: oklch(0.78 0.17 65);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  /* Tabular numerals on money/quantity contexts; use the class on columns. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
