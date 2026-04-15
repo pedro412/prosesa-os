@@ -70,7 +70,6 @@ npm run build        # production build
 npm run preview      # preview production build locally
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
-npm run db:types     # regenerate src/types/database.ts from Supabase schema
 ```
 
 ---
@@ -86,6 +85,28 @@ See [`CLAUDE.md` §3](./CLAUDE.md#3-project-structure). In short:
 - `src/types/database.ts` — generated from the Supabase schema
 - `supabase/migrations/` — versioned SQL migrations
 - `supabase/functions/` — Edge Functions (Phase 2)
+
+---
+
+## Supabase
+
+Two projects (per [`CLAUDE.md` §16](./CLAUDE.md#16-deployment)):
+
+| Env     | Project ref            | Plan | Status                                          |
+| ------- | ---------------------- | ---- | ----------------------------------------------- |
+| Staging | `comfhqhigiighmwuxfbb` | Free | Provisioned                                     |
+| Prod    | _TBD_                  | Pro  | Deferred — created when we get closer to deploy |
+
+The `supabase/` directory holds `config.toml` and versioned SQL migrations. Each developer links their local checkout to staging once:
+
+```bash
+supabase login                                        # one-time per machine
+supabase link --project-ref comfhqhigiighmwuxfbb      # enter the DB password when prompted
+```
+
+`supabase/.temp/` (where the link state lives) is gitignored — linking is a per-developer step.
+
+Public signup is **disabled** in the staging project's Auth settings. Users are provisioned by an admin; see §9 of `CLAUDE.md`.
 
 ---
 

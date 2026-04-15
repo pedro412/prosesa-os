@@ -1,0 +1,3 @@
+-- Initial empty migration.
+-- Verifies the migration pipeline is wired end-to-end
+-- (supabase CLI → staging → prod). Schema lands in later tickets.
