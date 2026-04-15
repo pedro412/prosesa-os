@@ -141,6 +141,38 @@ export type Database = {
         }
         Relationships: []
       }
+      folio_sequences: {
+        Row: {
+          company_id: string
+          created_at: string
+          current_value: number
+          doc_type: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          current_value?: number
+          doc_type: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          current_value?: number
+          doc_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folio_sequences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -185,6 +217,10 @@ export type Database = {
       }
       current_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      next_folio: {
+        Args: { p_company_id: string; p_doc_type: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
