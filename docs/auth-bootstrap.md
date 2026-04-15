@@ -34,19 +34,37 @@ psql "$(supabase status -o env | grep DB_URL | cut -d= -f2- | tr -d '"')" \
 
 ## Staging (`prosesa-os-staging`) and production (`prosesa-os-prod`)
 
-1. **Invite** the admin via Supabase dashboard → Authentication → Users → _Invite user_. Set the email. Supabase sends a sign-in magic link; the recipient sets a password.
-2. **Verify** that the profile row exists:
+1. **Invite** the admin via Supabase dashboard → Authentication → Users → _Invite user_. Supabase sends an email with a one-time link.
+2. **Recipient clicks the link.** The browser lands at `site_url`, and `src/lib/auth-redirect.ts` rewrites the URL to `/auth/update-password?flow=invite` while preserving the hash tokens. The user sees a Spanish "Bienvenido — define tu contraseña" form, sets a password, and is redirected to `/` logged in.
+3. **Verify** the profile row:
    ```sql
    select id, email, role, is_active from public.profiles where email = '<their-email>';
    ```
    The row should show `role = 'ventas'`.
-3. **Promote** to admin using the SQL editor:
+4. **Promote** to admin using the SQL editor:
    ```sql
    \set admin_email '''their-email@example.com'''
    \i supabase/scripts/promote-admin.sql
    ```
    Or paste the body of `supabase/scripts/promote-admin.sql` into the SQL editor after replacing `:admin_email` with the quoted email.
-4. **Audit**: the promotion triggers a row in `audit_logs` once that table is wired up (LIT-1\_). Until then, keep a manual note in the handover log.
+5. **Audit**: the promotion triggers a row in `audit_logs` once the table is attached to `profiles`. Until then, keep a manual note in the handover log.
+
+### Forgot / recover a password
+
+Users can initiate recovery themselves from the `/login` page via the **¿Olvidaste tu contraseña?** link, which opens `/auth/forgot-password`. They enter their email; Supabase sends a recovery email; the link brings them to `/auth/update-password?flow=recovery` (via the same `auth-redirect` hook).
+
+### Last-resort admin override (rarely needed)
+
+If an invite link is lost or a user is locked out, an admin can set a password directly in the Supabase SQL editor:
+
+```sql
+update auth.users
+set encrypted_password = crypt('<new-password>', gen_salt('bf')),
+    email_confirmed_at = coalesce(email_confirmed_at, now())
+where email = '<user-email>';
+```
+
+Use sparingly — normal flow is dashboard invite → self-service password. This bypasses the email-confirmation round trip.
 
 ## Demoting or deactivating
 

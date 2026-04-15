@@ -4,12 +4,16 @@ import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
+import { redirectAuthHashToRoute } from '@/lib/auth-redirect'
 import { initAuthSync } from '@/lib/auth-sync'
 import { isDev } from '@/lib/env'
 import { queryClient } from '@/lib/query-client'
 import { routeTree } from '@/routeTree.gen'
 import '@/index.css'
 
+// MUST run before the router so invited / recovery users land on the
+// password screen on their very first render.
+redirectAuthHashToRoute()
 initAuthSync(queryClient)
 
 const router = createRouter({
