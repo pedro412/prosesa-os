@@ -2,6 +2,7 @@ import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 import { Toaster } from '@/components/ui/sonner'
+import { DevAuthHeader } from '@/features/auth/UserMenu'
 import { isDev } from '@/lib/env'
 
 export const Route = createRootRoute({
@@ -12,6 +13,8 @@ export const Route = createRootRoute({
 function RootLayout() {
   return (
     <>
+      {/* LIT-13 scaffolding: real shell arrives in M1-14. */}
+      <DevAuthHeader />
       <Outlet />
       <Toaster richColors />
       {isDev && <TanStackRouterDevtools position="bottom-right" />}
