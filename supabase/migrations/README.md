@@ -200,3 +200,59 @@ Do not attach `audit.attach` to `audit_logs` itself — nothing audits the audit
 ### Regression test
 
 `supabase/scripts/test-audit.sql` creates a throwaway table inside a `BEGIN … ROLLBACK`, attaches the trigger, issues one insert / update / delete, and asserts that three corresponding `audit_logs` rows appeared. Run it after any change to `audit.audit_row` or `audit.attach`.
+
+## Folio sequences
+
+Folios for `sales_notes`, `work_orders`, and other per-company monotonic documents are minted by `public.next_folio(p_company_id uuid, p_doc_type text) returns text`. Ships with LIT-23; called by M3/M4 when those tables land.
+
+### Usage
+
+```sql
+select public.next_folio('<company-uuid>', 'sales_note');  -- returns e.g. 'A-0001'
+```
+
+From the frontend:
+
+```ts
+const { data, error } = await supabase.rpc('next_folio', {
+  p_company_id: companyId,
+  p_doc_type: 'sales_note',
+})
+// data === 'A-0001'
+```
+
+Call inside the same transaction as the document insert so the folio and the row land atomically.
+
+### How it works
+
+- `public.folio_sequences` — a `(company_id, doc_type)`-keyed counter table. RLS on, **no policies**, and base privileges revoked from `authenticated` / `service_role`. The only sanctioned access is via `next_folio()`.
+- `next_folio()` runs as `SECURITY DEFINER` and increments with `INSERT ... ON CONFLICT DO UPDATE RETURNING`. The `ON CONFLICT` path acquires a row lock on the matching sequence row, so concurrent callers serialize on the same `(company, doc_type)` and each walks away with a distinct value. Equivalent safety to a manual `SELECT … FOR UPDATE`, without the transaction dance.
+- Format: `"{company_code}-{padded_number}"` with minimum four-digit padding (`A-0001` … `A-9999`, then `A-10000`).
+- Unknown or soft-deleted `company_id` raises `foreign_key_violation`.
+
+### `doc_type` vocabulary
+
+Free text constrained by `CHECK (doc_type ~ '^[a-z_]{1,40}$')` so a casing typo ("Sales_Note") can't fork a counter. Adopt conventional snake_case names:
+
+- `sales_note`
+- `work_order`
+- `quotation` (Phase 2)
+
+New types don't need a migration — the first call for a `(company, doc_type)` pair auto-creates the row at 1.
+
+### Guarantees
+
+- **Unique** per `(company_id, doc_type)`.
+- **Monotonic** — each call returns a strictly greater value than every previous call for the same key.
+- **Never reused**, even after the document that consumed the folio is cancelled. Cancellation is a state transition on the document row; the sequence is not rolled back.
+
+### Regression test
+
+Concurrency can't be exercised from a single psql session, so the regression test is a Node script rather than SQL:
+
+```bash
+supabase start
+node supabase/scripts/test-folios.mjs
+```
+
+It fires 1000 parallel `next_folio` RPCs against the local stack (service_role key) and asserts uniqueness + no gaps. Run it after any change to `next_folio` or `folio_sequences`. Tunable via `FOLIO_TEST_N` and `FOLIO_TEST_COMPANY` env vars.
