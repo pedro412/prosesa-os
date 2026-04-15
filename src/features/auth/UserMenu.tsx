@@ -43,7 +43,7 @@ export function DevAuthHeader() {
     <header className="bg-background/80 border-border/60 sticky top-0 z-10 flex h-12 items-center justify-end gap-2 border-b px-4 backdrop-blur">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2">
+          <Button variant="ghost" size="sm" className="gap-2" data-testid="auth-menu-trigger">
             <User className="size-4" />
             <span className="max-w-[16ch] truncate">{email}</span>
           </Button>
@@ -60,6 +60,7 @@ export function DevAuthHeader() {
               void handleSignOut()
             }}
             disabled={signOut.isPending}
+            data-testid="auth-logout"
           >
             <LogOut className="mr-2 size-4" />
             {authMessages.logout.action}
