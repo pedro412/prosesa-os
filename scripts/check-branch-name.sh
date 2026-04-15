@@ -6,8 +6,9 @@
 branch=$(git rev-parse --abbrev-ref HEAD)
 
 # Allow long-lived branches and detached HEAD (e.g. during rebase).
+# `production` tracks what is live in prod; only the release workflow advances it.
 case "$branch" in
-  main|HEAD)
+  main|production|HEAD)
     exit 0
     ;;
 esac
