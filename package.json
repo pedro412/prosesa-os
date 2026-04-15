@@ -13,6 +13,7 @@
     "typecheck": "npm run routes:gen && tsc -b --noEmit",
     "routes:gen": "tsr generate",
     "routes:watch": "tsr watch",
+    "db:types": "bash scripts/gen-db-types.sh",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

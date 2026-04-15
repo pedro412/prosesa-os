@@ -156,8 +156,24 @@ See [`CLAUDE.md` §5](./CLAUDE.md#5-language-policy) for the full policy.
 
 - Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:`) — enforced by commitlint + Husky.
 - ESLint runs pre-commit. No `any`, no unused vars.
-- Supabase types must be regenerated after every schema change.
+- Supabase types must be regenerated after every schema change — see below.
 - Agent collaborators (Claude Code, etc.) must follow [`CLAUDE.md`](./CLAUDE.md) / [`AGENTS.md`](./AGENTS.md).
+
+### Regenerating DB types
+
+`src/types/database.ts` is generated from the live Supabase schema. Never edit by hand.
+
+```bash
+npm run db:types
+```
+
+Run this **immediately after** any of:
+
+- `supabase db push` (a migration landed)
+- Pulling `main` and noticing a new file under `supabase/migrations/`
+- Switching the linked Supabase project
+
+Override the source project with `SUPABASE_PROJECT_ID=<ref> npm run db:types` (defaults to staging). Commit the regenerated file in the same PR as the migration — there is no CI drift check yet.
 
 ---
 
