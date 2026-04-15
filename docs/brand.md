@@ -20,14 +20,16 @@ Warm, friendly, organized. Low chroma in the chrome; one energetic accent. Round
 
 ## Primary accent
 
-**Orange-yellow** (roughly `oklch(0.73 0.17 70)`, hex around `#F59E0B`). It is the dominant color in the mark (outer silhouette), has enough chroma to feel alive, and passes WCAG AA against white once darkened for buttons/text.
+**Deep teal** — `oklch(0.55 0.12 195)`, roughly `#0E7C82`. Sampled from the logo's teal/cyan splash. Calm and professional without reading as generic "SaaS blue"; distinctive without the aggression of the orange-yellow that led the first iteration. Passes WCAG AA against white foreground at 4.5:1.
 
-- Primary (default) — solid color on buttons, primary CTAs
-- Primary hover — ~6% darker
+- Primary (default) — solid teal on buttons and primary CTAs
+- Primary hover — ~6% darker via color-mix in primitives
 - Primary foreground — warm off-white, never pure `#fff`
-- Ring (focus) — same hue at slightly lower lightness
+- Ring (focus) — same hue, slightly higher chroma and lightness for visibility
 
-Other logo colors (teal, pink, blue, green, purple) are **not** primary; they're reserved as a **palette for status and categorization** (work-order stages, line-item categories) once those features land. No UI chrome uses them.
+Other logo colors (orange-yellow, pink, blue, green, purple) are **not** primary; they're reserved as a **palette for status and categorization** (work-order stages, line-item categories) once those features land. No UI chrome uses them.
+
+The original orange-yellow pick was swapped after visual review — the warmth fought the calm-workhorse tone the ticket set. Teal preserves the brand connection (the hue comes straight from the logo) while keeping the chrome restful.
 
 **Destructive** stays on the standard red family — do not repurpose any of the brand hues for destructive actions; semantic meaning > brand harmony.
 
