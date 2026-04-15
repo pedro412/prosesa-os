@@ -12,6 +12,26 @@ export const settingsMessages = {
     loading: 'Cargando empresas…',
     empty: 'Aún no hay empresas configuradas.',
     loadError: 'No se pudieron cargar las empresas.',
+    columns: {
+      code: 'Clave',
+      nombreComercial: 'Nombre comercial',
+      razonSocial: 'Razón social',
+      rfc: 'RFC',
+      regimenFiscal: 'Régimen',
+      ivaRate: 'IVA',
+      estado: 'Estado',
+      actions: 'Acciones',
+    },
+    estado: {
+      active: 'Activa',
+      inactive: 'Inactiva',
+    },
+    notSet: '—',
+    edit: 'Editar',
+  },
+  editDialog: {
+    title: 'Editar empresa',
+    description: 'Actualiza los datos fiscales y de facturación.',
   },
   form: {
     codeLabel: 'Clave de folio',
