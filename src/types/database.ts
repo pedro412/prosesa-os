@@ -52,6 +52,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assert_all_tables_have_rls: {
+        Args: { allowlist?: string[] }
+        Returns: undefined
+      }
+      current_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
