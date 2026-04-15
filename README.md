@@ -120,14 +120,25 @@ Public signup is **disabled** in the staging project's Auth settings. Users are 
 
 ---
 
-## Environments
+## Deployment
 
-| Env        | Frontend                   | Backend                              |
-| ---------- | -------------------------- | ------------------------------------ |
-| Production | Vercel Pro (`main` branch) | Supabase Pro — `prosesa-os-prod`     |
-| Staging    | Vercel preview URL per PR  | Supabase Free — `prosesa-os-staging` |
+Vercel hosts the frontend; two Supabase projects back the app. The release model intentionally keeps `main` out of production:
 
-Manual QA on staging is owned by Karina.
+| Env        | Branch / trigger                 | Frontend                    | Backend Supabase project             |
+| ---------- | -------------------------------- | --------------------------- | ------------------------------------ |
+| Preview    | any PR                           | Vercel preview URL per PR   | Supabase Free — `prosesa-os-staging` |
+| Staging    | merge to `main`                  | Vercel `staging` custom env | Supabase Free — `prosesa-os-staging` |
+| Production | manual promotion to `production` | Vercel production domain    | Supabase Pro — `prosesa-os-prod`     |
+
+- **`main` never deploys to production.** It deploys to Vercel's `staging` custom environment, which tracks `main` in the Vercel project settings.
+- **`production` is a protected long-lived branch.** It is advanced only by a release workflow (out of scope for Phase 1) — no direct pushes, no manual merges. Until that workflow exists, production has no automatic deploys.
+- Env vars are set per Vercel environment: Preview and Staging use the staging Supabase project; Production uses the prod Supabase project.
+
+Manual QA on staging (`main` branch deploys + PR previews) is owned by Karina.
+
+### CI
+
+Every PR runs `lint`, `typecheck`, and `build` via GitHub Actions (`.github/workflows/ci.yml`). Branch protection on `main` requires these checks before merging.
 
 ---
 
@@ -175,6 +186,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are `YYY
 - Agent contract (`CLAUDE.md`) with `AGENTS.md` pointing to it.
 - This README.
 - Phase 1 Linear structure proposal (`docs/linear-phase-1.md`).
+- GitHub Actions CI workflow running `lint`, `typecheck`, and `build` on PRs against `main` and `production`.
+- `production` long-lived branch for future release workflow; `main` now deploys to Vercel's `staging` environment instead of production.
 
 ---
 

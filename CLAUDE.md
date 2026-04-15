@@ -231,7 +231,7 @@ VITE_SUPABASE_ANON_KEY
 - **ESLint v9 + typescript-eslint + Prettier** (config per tech decisions). `no-explicit-any` and `no-unused-vars` are errors; `no-console` is a warning.
 - **Prettier**: no semicolons, single quotes, 2-space tabs, `trailingComma: es5`, `printWidth: 100`.
 - **Conventional Commits** enforced via commitlint + Husky: `feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:`. ESLint runs pre-commit and blocks on errors.
-- **Branch naming** enforced via Husky (`pre-commit` + `pre-push`): `<type>/<slug>` where `<type>` is one of `feat | fix | chore | refactor | test | docs`. Slug is lowercase (`a-z0-9._-`). Example: `feat/lit-7-eslint-prettier-husky`. Do **not** use a personal username as the prefix — Linear's default `<user>/<ticket>-...` branch names must be renamed before the first commit. `main` is the only allowed long-lived branch.
+- **Branch naming** enforced via Husky (`pre-commit` + `pre-push`): `<type>/<slug>` where `<type>` is one of `feat | fix | chore | refactor | test | docs`. Slug is lowercase (`a-z0-9._-`). Example: `feat/lit-7-eslint-prettier-husky`. Do **not** use a personal username as the prefix — Linear's default `<user>/<ticket>-...` branch names must be renamed before the first commit. `main` and `production` are the only allowed long-lived branches (`production` is advanced by the release workflow only).
 - **Supabase types** regenerated after every schema change:
   ```bash
   supabase gen types typescript --project-id <id> > src/types/database.ts
@@ -288,7 +288,10 @@ PR preview URL (Vercel) → Supabase Free (prosesa-os-staging) → Karina QA
 ```
 
 - One Vercel project, branch previews per PR.
-- `main` → production. Feature branches → preview + staging Supabase.
+- `main` → Vercel `staging` custom environment → `prosesa-os-staging` Supabase.
+- `production` → Vercel Production → `prosesa-os-prod` Supabase. Only advanced by the release workflow (Phase 2); no direct pushes.
+- Feature branches → Vercel Preview → `prosesa-os-staging` Supabase.
+- CI: GitHub Actions (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `build` on every PR targeting `main` or `production`; branch protection blocks merge on failure.
 
 ---
 
@@ -317,6 +320,7 @@ See SPEC §9 for scoping detail on each.
 
 Tracks changes to this agent contract only (rules, scope decisions, stack locks). Product/release changes live in the root [`README.md`](./README.md#changelog).
 
-| Date       | Change                              |
-| ---------- | ----------------------------------- |
-| 2026-04-14 | Initial agent contract for Phase 1. |
+| Date       | Change                                                                                                                            |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-14 | Initial agent contract for Phase 1.                                                                                               |
+| 2026-04-15 | Deployment model: `main` → staging, new `production` long-lived branch → prod (release workflow, Phase 2). CI via GitHub Actions. |
