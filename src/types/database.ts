@@ -87,6 +87,57 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          cp_fiscal: string | null
+          created_at: string
+          deleted_at: string | null
+          direccion_fiscal: string | null
+          id: string
+          is_active: boolean
+          iva_inclusive: boolean
+          iva_rate: number
+          logo_url: string | null
+          nombre_comercial: string
+          razon_social: string
+          regimen_fiscal: string | null
+          rfc: string
+          updated_at: string
+        }
+        Insert: {
+          cp_fiscal?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          direccion_fiscal?: string | null
+          id?: string
+          is_active?: boolean
+          iva_inclusive?: boolean
+          iva_rate?: number
+          logo_url?: string | null
+          nombre_comercial: string
+          razon_social: string
+          regimen_fiscal?: string | null
+          rfc: string
+          updated_at?: string
+        }
+        Update: {
+          cp_fiscal?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          direccion_fiscal?: string | null
+          id?: string
+          is_active?: boolean
+          iva_inclusive?: boolean
+          iva_rate?: number
+          logo_url?: string | null
+          nombre_comercial?: string
+          razon_social?: string
+          regimen_fiscal?: string | null
+          rfc?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
