@@ -2,7 +2,6 @@ import { UserMenu } from '@/features/auth/UserMenu'
 
 import logoUrl from '@/assets/brand/prosesa-logo.png'
 
-import { ActiveCompanySelector } from './ActiveCompanySelector'
 import { layoutMessages } from './messages'
 
 export function AppHeader() {
@@ -23,7 +22,6 @@ export function AppHeader() {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <ActiveCompanySelector />
         <UserMenu />
       </div>
     </header>

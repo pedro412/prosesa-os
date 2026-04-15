@@ -5,10 +5,6 @@ export const layoutMessages = {
   app: {
     title: 'ProsesaOS',
   },
-  company: {
-    placeholder: 'Seleccionar empresa',
-    hint: 'Disponible en M2',
-  },
   nav: {
     groupLabel: 'Menú',
     pos: 'Punto de venta',

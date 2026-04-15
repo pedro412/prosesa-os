@@ -134,10 +134,10 @@ Two legal entities (razones sociales), one business, one workspace, one catalog,
 
 - Every `sales_notes` and `work_orders` row has a non-null `company_id`.
 - Folio sequences are per-company (e.g., `A-0001`, `B-0001`). Implement via a per-company sequence table or `generate_next_folio(company_id)` DB function inside a transaction.
-- The active company is part of the app's session state and is required before any transactional action. Block the sale if no company is selected.
-- The company selector must be visible in the header/nav at all times; a sale cannot be transferred between companies after creation.
-- Catalog, inventory, customers, and users are shared.
-- All reports and lists support per-company filtering and a consolidated view.
+- Company choice is **per-document, not a global session**. The picker lives inline in the sale/quotation creation form, not in the app header — with only two razones sociales and no cross-cutting data-scoping, a global selector adds friction without product value.
+- Block the sale if no company is chosen in the form. A sale cannot be transferred between companies after creation.
+- Catalog, inventory, customers, work orders as data, and users are **shared** across razones sociales. None of these lists are filtered by company in the UI.
+- Reports on `sales_notes` / `work_orders` support per-company filtering and a consolidated view (they're the only tables carrying `company_id`).
 
 ---
 
@@ -319,8 +319,9 @@ See SPEC §9 for scoping detail on each.
 
 Tracks changes to this agent contract only (rules, scope decisions, stack locks). Product/release changes live in the root [`README.md`](./README.md#changelog).
 
-| Date       | Change                                                                                                                                       |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-04-14 | Initial agent contract for Phase 1.                                                                                                          |
-| 2026-04-15 | Deployment model: `main` → staging, new `production` long-lived branch → prod (release workflow, Phase 2). CI via GitHub Actions.            |
-| 2026-04-15 | Per-PR Vercel preview deployments disabled — only `staging` (main) and `production` environments. QA happens on the staging URL after merge. |
+| Date       | Change                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-04-14 | Initial agent contract for Phase 1.                                                                                                                                                  |
+| 2026-04-15 | Deployment model: `main` → staging, new `production` long-lived branch → prod (release workflow, Phase 2). CI via GitHub Actions.                                                    |
+| 2026-04-15 | Per-PR Vercel preview deployments disabled — only `staging` (main) and `production` environments. QA happens on the staging URL after merge.                                         |
+| 2026-04-15 | §6 multi-company: company choice is per-document (picker lives in sale/quotation form), not a global session. Shared catalog/inventory/customers/work-orders are unscoped in the UI. |
