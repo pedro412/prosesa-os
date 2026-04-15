@@ -4,10 +4,13 @@ import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
+import { initAuthSync } from '@/lib/auth-sync'
 import { isDev } from '@/lib/env'
 import { queryClient } from '@/lib/query-client'
 import { routeTree } from '@/routeTree.gen'
 import '@/index.css'
+
+initAuthSync(queryClient)
 
 const router = createRouter({
   routeTree,
