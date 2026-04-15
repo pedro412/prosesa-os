@@ -2,7 +2,6 @@ import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 import { Toaster } from '@/components/ui/sonner'
-import { DevAuthHeader } from '@/features/auth/UserMenu'
 import { BugReportFab } from '@/features/bug-reports/BugReportFab'
 import { isDev } from '@/lib/env'
 
@@ -14,9 +13,8 @@ export const Route = createRootRoute({
 function RootLayout() {
   return (
     <>
-      {/* LIT-13 scaffolding: real shell arrives in M1-14. */}
-      <DevAuthHeader />
       <Outlet />
+      {/* FAB self-gates on session, so it hides on /login and shows inside the shell. */}
       <BugReportFab />
       <Toaster richColors />
       {isDev && <TanStackRouterDevtools position="bottom-right" />}
