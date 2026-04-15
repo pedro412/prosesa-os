@@ -20,8 +20,9 @@ Ship with LIT-14. Use them instead of inlining the same logic in every policy.
 | `public.is_admin()`                            | `boolean` | Admin-gated writes and admin-only reads                                 |
 | `public.current_role()`                        | `text`    | Role-based dispatch beyond just admin (e.g. future `ventas`-only rules) |
 | `public.assert_all_tables_have_rls(allowlist)` | `void`    | Invariant check at the tail of every schema-changing migration          |
+| `audit.attach(table_name)`                     | `void`    | Attach the generic audit trigger to a business table (see below)        |
 
-All three are `security definer` + `set search_path = public` and are grantable only to `authenticated` (the assertion is grantless; migrations invoke it while running as the migration user).
+All are `security definer` + `set search_path = public` and are grantable only to `authenticated` (the assertion and `audit.attach` are migration-time utilities, never granted to runtime roles).
 
 ## Naming convention
 
@@ -167,3 +168,35 @@ psql "$(supabase status -o env | grep DB_URL | cut -d= -f2- | tr -d '"')" \
 ```
 
 Or open the Supabase SQL editor and paste `supabase/scripts/check-rls.sql`. The script returns a table of offenders with owner and row count — handy for triage.
+
+## Audit trail
+
+All business tables funnel mutations through a single `public.audit_logs` table via a generic trigger. Schema + trigger ship with LIT-15; attach per table when the feature lands.
+
+### How to attach
+
+In the migration that creates the business table, after RLS policies:
+
+```sql
+select audit.attach('work_orders');
+```
+
+That installs an `audit_trigger` that fires after INSERT / UPDATE / DELETE and inserts one row in `public.audit_logs` with `old_data`, `new_data`, the `action`, the actor's `user_id` (`auth.uid()`), and their `user_role` at commit time.
+
+### Uuid-pk invariant
+
+The trigger stores `record_id uuid not null`, so **every audited table must have a uuid primary key named `id`**. That matches our data-model convention ([`CLAUDE.md` §7](../../CLAUDE.md#7-data-model-principles)). If a future table needs a different pk shape, extend `audit.audit_row` to accept the pk column via `TG_ARGV` rather than working around the invariant.
+
+### Append-only enforcement
+
+`public.audit_logs` ships with:
+
+- Admin-only SELECT policy.
+- **No** client INSERT/UPDATE/DELETE policies — writes happen exclusively through `audit.audit_row()`, which is `SECURITY DEFINER`.
+- Explicit `revoke update, delete … from authenticated, service_role` as a second line of defense, even if a future policy author adds an unintended policy.
+
+Do not attach `audit.attach` to `audit_logs` itself — nothing audits the auditor.
+
+### Regression test
+
+`supabase/scripts/test-audit.sql` creates a throwaway table inside a `BEGIN … ROLLBACK`, attaches the trigger, issues one insert / update / delete, and asserts that three corresponding `audit_logs` rows appeared. Run it after any change to `audit.audit_row` or `audit.attach`.
