@@ -33,6 +33,22 @@ export default tseslint.config(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
       'no-console': 'warn',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
+          message:
+            'Do not read import.meta.env directly. Import validated vars from @/lib/env instead.',
+        },
+      ],
+    },
+  },
+  {
+    // env.ts is the single allowed reader of import.meta.env.
+    files: ['src/lib/env.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
   {

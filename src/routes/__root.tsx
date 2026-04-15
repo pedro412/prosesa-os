@@ -2,6 +2,7 @@ import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 import { Toaster } from '@/components/ui/sonner'
+import { isDev } from '@/lib/env'
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -13,7 +14,7 @@ function RootLayout() {
     <>
       <Outlet />
       <Toaster richColors />
-      {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
+      {isDev && <TanStackRouterDevtools position="bottom-right" />}
     </>
   )
 }
