@@ -27,4 +27,7 @@ export const authMessages = {
     success: 'Sesión cerrada',
     error: 'No se pudo cerrar la sesión. Intenta de nuevo.',
   },
+  routeGuards: {
+    adminOnly: 'No tienes permiso para acceder a esta sección.',
+  },
 } as const

@@ -22,6 +22,7 @@ export function BugReportFab() {
         title={bugReportMessages.fab.label}
         className="fixed right-5 bottom-5 z-40 size-12 rounded-full shadow-lg"
         size="icon"
+        data-testid="bug-report-fab"
       >
         <Bug className="size-5" />
       </Button>

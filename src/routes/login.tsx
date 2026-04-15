@@ -82,6 +82,7 @@ function LoginRoute() {
                 placeholder={authMessages.login.emailPlaceholder}
                 aria-invalid={fieldErrors.email ? true : undefined}
                 disabled={signIn.isPending}
+                data-testid="login-email"
               />
               {fieldErrors.email && <p className="text-destructive text-sm">{fieldErrors.email}</p>}
             </div>
@@ -98,13 +99,19 @@ function LoginRoute() {
                 placeholder={authMessages.login.passwordPlaceholder}
                 aria-invalid={fieldErrors.password ? true : undefined}
                 disabled={signIn.isPending}
+                data-testid="login-password"
               />
               {fieldErrors.password && (
                 <p className="text-destructive text-sm">{fieldErrors.password}</p>
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={signIn.isPending}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={signIn.isPending}
+              data-testid="login-submit"
+            >
               {signIn.isPending ? authMessages.login.submitting : authMessages.login.submit}
             </Button>
           </form>
