@@ -124,17 +124,18 @@ Public signup is **disabled** in the staging project's Auth settings. Users are 
 
 Vercel hosts the frontend; two Supabase projects back the app. The release model intentionally keeps `main` out of production:
 
-| Env        | Branch / trigger                 | Frontend                    | Backend Supabase project             |
-| ---------- | -------------------------------- | --------------------------- | ------------------------------------ |
-| Preview    | any PR                           | Vercel preview URL per PR   | Supabase Free — `prosesa-os-staging` |
-| Staging    | merge to `main`                  | Vercel `staging` custom env | Supabase Free — `prosesa-os-staging` |
-| Production | manual promotion to `production` | Vercel production domain    | Supabase Pro — `prosesa-os-prod`     |
+| Env        | Branch / trigger                 | Frontend                                                                                                                                          | Backend Supabase project             |
+| ---------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Staging    | merge to `main`                  | [prosesa-os-env-staging-pedro-alvarezs-projects-6872409c.vercel.app](https://prosesa-os-env-staging-pedro-alvarezs-projects-6872409c.vercel.app/) | Supabase Free — `prosesa-os-staging` |
+| Production | manual promotion to `production` | TBD (custom domain pending)                                                                                                                       | Supabase Pro — `prosesa-os-prod`     |
+
+Per-PR preview deployments are intentionally **disabled** — Karina QAs against the `main` staging URL after merge, not on individual branches.
 
 - **`main` never deploys to production.** It deploys to Vercel's `staging` custom environment, which tracks `main` in the Vercel project settings.
 - **`production` is a protected long-lived branch.** It is advanced only by a release workflow (out of scope for Phase 1) — no direct pushes, no manual merges. Until that workflow exists, production has no automatic deploys.
 - Env vars are set per Vercel environment: Preview and Staging use the staging Supabase project; Production uses the prod Supabase project.
 
-Manual QA on staging (`main` branch deploys + PR previews) is owned by Karina.
+Manual QA on staging (`main` branch deploys) is owned by Karina.
 
 ### CI
 

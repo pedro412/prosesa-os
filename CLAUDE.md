@@ -284,13 +284,12 @@ Vercel Pro (Vite build — production)
 Supabase Pro (prosesa-os-prod)
 
 
-PR preview URL (Vercel) → Supabase Free (prosesa-os-staging) → Karina QA
+Vercel staging (main branch) → Supabase Free (prosesa-os-staging) → Karina QA
 ```
 
-- One Vercel project, branch previews per PR.
+- One Vercel project, two environments only: `staging` (tracks `main`) and `production` (tracks `production`). **Per-PR preview deployments are disabled** — QA happens on the `main` staging URL after merge.
 - `main` → Vercel `staging` custom environment → `prosesa-os-staging` Supabase.
 - `production` → Vercel Production → `prosesa-os-prod` Supabase. Only advanced by the release workflow (Phase 2); no direct pushes.
-- Feature branches → Vercel Preview → `prosesa-os-staging` Supabase.
 - CI: GitHub Actions (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `build` on every PR targeting `main` or `production`; branch protection blocks merge on failure.
 
 ---
@@ -320,7 +319,8 @@ See SPEC §9 for scoping detail on each.
 
 Tracks changes to this agent contract only (rules, scope decisions, stack locks). Product/release changes live in the root [`README.md`](./README.md#changelog).
 
-| Date       | Change                                                                                                                            |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-04-14 | Initial agent contract for Phase 1.                                                                                               |
-| 2026-04-15 | Deployment model: `main` → staging, new `production` long-lived branch → prod (release workflow, Phase 2). CI via GitHub Actions. |
+| Date       | Change                                                                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-14 | Initial agent contract for Phase 1.                                                                                                          |
+| 2026-04-15 | Deployment model: `main` → staging, new `production` long-lived branch → prod (release workflow, Phase 2). CI via GitHub Actions.            |
+| 2026-04-15 | Per-PR Vercel preview deployments disabled — only `staging` (main) and `production` environments. QA happens on the staging URL after merge. |
