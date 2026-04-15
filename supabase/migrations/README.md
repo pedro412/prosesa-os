@@ -21,8 +21,26 @@ Ship with LIT-14. Use them instead of inlining the same logic in every policy.
 | `public.current_role()`                        | `text`    | Role-based dispatch beyond just admin (e.g. future `ventas`-only rules) |
 | `public.assert_all_tables_have_rls(allowlist)` | `void`    | Invariant check at the tail of every schema-changing migration          |
 | `audit.attach(table_name)`                     | `void`    | Attach the generic audit trigger to a business table (see below)        |
+| `public.set_updated_at()`                      | `trigger` | Touches `updated_at = now()` on UPDATE. Attach per table.               |
+| `public.stamp_actor_columns()`                 | `trigger` | Fills `created_by` / `updated_by` from `auth.uid()`. Attach per table.  |
 
-All are `security definer` + `set search_path = public` and are grantable only to `authenticated` (the assertion and `audit.attach` are migration-time utilities, never granted to runtime roles).
+All are `security definer` + `set search_path = public` and are grantable only to `authenticated` (the assertion and `audit.attach` are migration-time utilities, never granted to runtime roles). The two trigger helpers are attached per table, not granted — their signatures match Postgres `trigger` requirements.
+
+Attach both bookkeeping triggers in the migration that creates the table:
+
+```sql
+create trigger <table>_set_updated_at
+before update on public.<table>
+for each row
+execute function public.set_updated_at();
+
+create trigger <table>_stamp_actor
+before insert or update on public.<table>
+for each row
+execute function public.stamp_actor_columns();
+```
+
+The actor trigger writes `auth.uid()` into `created_by` on INSERT and `updated_by` on UPDATE. It also freezes `created_by` against mutation. Migration-time seeds land with `created_by = null` because `auth.uid()` has no JWT context there — that's the intended way to distinguish seeded rows from user-created ones.
 
 ## Naming convention
 

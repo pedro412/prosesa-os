@@ -141,6 +141,63 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          cp_fiscal: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          email: string | null
+          id: string
+          is_publico_general: boolean
+          nombre: string
+          notas: string | null
+          razon_social: string | null
+          regimen_fiscal: string | null
+          requiere_factura: boolean
+          rfc: string | null
+          telefono: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cp_fiscal?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          is_publico_general?: boolean
+          nombre: string
+          notas?: string | null
+          razon_social?: string | null
+          regimen_fiscal?: string | null
+          requiere_factura?: boolean
+          rfc?: string | null
+          telefono?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cp_fiscal?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          is_publico_general?: boolean
+          nombre?: string
+          notas?: string | null
+          razon_social?: string | null
+          regimen_fiscal?: string | null
+          requiere_factura?: boolean
+          rfc?: string | null
+          telefono?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       folio_sequences: {
         Row: {
           company_id: string
