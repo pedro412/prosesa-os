@@ -26,6 +26,8 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .maybeSingle()
 
   if (error) throw error
+  // Cast narrows role from string → ProfileRole; CHECK constraint on the DB
+  // guarantees the value is within the union.
   return (data as Profile | null) ?? null
 }
 
