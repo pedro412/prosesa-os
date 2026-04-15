@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react'
-import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -114,6 +114,16 @@ function LoginRoute() {
             >
               {signIn.isPending ? authMessages.login.submitting : authMessages.login.submit}
             </Button>
+
+            <div className="text-center">
+              <Link
+                to="/auth/forgot-password"
+                className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline"
+                data-testid="login-forgot-password"
+              >
+                {authMessages.login.forgotPasswordLink}
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>
