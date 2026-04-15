@@ -16,12 +16,7 @@ export function AppHeader() {
          * PNG crop of the full logo — good enough for an internal tool at
          * 32px; swap for a dedicated SVG mark when an export arrives.
          */}
-        <img
-          src={logoUrl}
-          alt=""
-          aria-hidden
-          className="size-8 shrink-0 rounded-md object-contain"
-        />
+        <img src={logoUrl} alt="" aria-hidden className="size-8 shrink-0 object-contain" />
         <span className="font-display text-base font-semibold tracking-tight">
           {layoutMessages.app.title}
         </span>
