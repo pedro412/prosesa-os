@@ -89,6 +89,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          code: string
           cp_fiscal: string | null
           created_at: string
           deleted_at: string | null
@@ -105,6 +106,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          code: string
           cp_fiscal?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -121,6 +123,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          code?: string
           cp_fiscal?: string | null
           created_at?: string
           deleted_at?: string | null
