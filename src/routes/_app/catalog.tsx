@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { AdminRoute } from '@/components/guards'
+import { AuthenticatedRoute } from '@/components/guards'
 import { CatalogPage } from '@/features/catalog/CatalogPage'
 
 export const Route = createFileRoute('/_app/catalog')({
@@ -9,8 +9,8 @@ export const Route = createFileRoute('/_app/catalog')({
 
 function CatalogRoute() {
   return (
-    <AdminRoute>
+    <AuthenticatedRoute>
       <CatalogPage />
-    </AdminRoute>
+    </AuthenticatedRoute>
   )
 }
