@@ -49,7 +49,11 @@ const priceFormatter = new Intl.NumberFormat('es-MX', {
   currency: 'MXN',
 })
 
-export function ItemsList() {
+interface ItemsListProps {
+  canEdit: boolean
+}
+
+export function ItemsList({ canEdit }: ItemsListProps) {
   const [search, setSearch] = useState('')
   const [categoryId, setCategoryId] = useState<string>(ALL_CATEGORIES)
   const [includeInactive, setIncludeInactive] = useState(false)
@@ -143,14 +147,16 @@ export function ItemsList() {
               {messages.filters.includeInactiveLabel}
             </Label>
           </div>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            data-testid="item-create-button"
-            className="shrink-0"
-          >
-            <Plus aria-hidden className="size-4" />
-            {messages.newButton}
-          </Button>
+          {canEdit && (
+            <Button
+              onClick={() => setCreateOpen(true)}
+              data-testid="item-create-button"
+              className="shrink-0"
+            >
+              <Plus aria-hidden className="size-4" />
+              {messages.newButton}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -192,7 +198,7 @@ export function ItemsList() {
                 <TableHead>{messages.columns.pricingMode}</TableHead>
                 <TableHead className="text-right">{messages.columns.price}</TableHead>
                 <TableHead className="text-center">{messages.columns.active}</TableHead>
-                <TableHead className="sr-only">{messages.columns.actions}</TableHead>
+                {canEdit && <TableHead className="sr-only">{messages.columns.actions}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -201,6 +207,7 @@ export function ItemsList() {
                   key={item.id}
                   item={item}
                   category={categoryById.get(item.category_id)}
+                  canEdit={canEdit}
                   onEdit={() => setEditing(item)}
                   onDelete={() => setDeleting(item)}
                 />
@@ -241,24 +248,28 @@ export function ItemsList() {
         </div>
       )}
 
-      <ItemFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
+      {canEdit && (
+        <>
+          <ItemFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
 
-      <ItemFormDialog
-        mode="edit"
-        item={editing}
-        open={editing !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditing(null)
-        }}
-      />
+          <ItemFormDialog
+            mode="edit"
+            item={editing}
+            open={editing !== null}
+            onOpenChange={(open) => {
+              if (!open) setEditing(null)
+            }}
+          />
 
-      <ItemDeleteDialog
-        item={deleting}
-        open={deleting !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleting(null)
-        }}
-      />
+          <ItemDeleteDialog
+            item={deleting}
+            open={deleting !== null}
+            onOpenChange={(open) => {
+              if (!open) setDeleting(null)
+            }}
+          />
+        </>
+      )}
     </div>
   )
 }
@@ -266,11 +277,12 @@ export function ItemsList() {
 interface ItemRowProps {
   item: CatalogItem
   category: CatalogCategory | undefined
+  canEdit: boolean
   onEdit: () => void
   onDelete: () => void
 }
 
-function ItemRow({ item, category, onEdit, onDelete }: ItemRowProps) {
+function ItemRow({ item, category, canEdit, onEdit, onDelete }: ItemRowProps) {
   const updateMutation = useUpdateItem()
 
   async function handleToggleActive(value: boolean) {
@@ -295,30 +307,43 @@ function ItemRow({ item, category, onEdit, onDelete }: ItemRowProps) {
         {pricingMode === 'variable' ? '—' : priceFormatter.format(Number(item.price))}
       </TableCell>
       <TableCell className="text-center">
-        <Switch
-          checked={item.is_active}
-          onCheckedChange={handleToggleActive}
-          disabled={updateMutation.isPending}
-          aria-label={messages.actions.toggleActiveAria(item.name)}
-          data-testid={`item-active-${item.id}`}
-        />
+        {canEdit ? (
+          <Switch
+            checked={item.is_active}
+            onCheckedChange={handleToggleActive}
+            disabled={updateMutation.isPending}
+            aria-label={messages.actions.toggleActiveAria(item.name)}
+            data-testid={`item-active-${item.id}`}
+          />
+        ) : (
+          <span className="text-muted-foreground text-sm">
+            {item.is_active ? messages.status.active : messages.status.inactive}
+          </span>
+        )}
       </TableCell>
-      <TableCell className="text-right">
-        <div className="flex justify-end gap-1">
-          <Button variant="outline" size="sm" onClick={onEdit} data-testid={`item-edit-${item.id}`}>
-            {messages.actions.edit}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onDelete}
-            aria-label={messages.actions.delete}
-            data-testid={`item-delete-${item.id}`}
-          >
-            <Trash2 aria-hidden className="size-4" />
-          </Button>
-        </div>
-      </TableCell>
+      {canEdit && (
+        <TableCell className="text-right">
+          <div className="flex justify-end gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEdit}
+              data-testid={`item-edit-${item.id}`}
+            >
+              {messages.actions.edit}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onDelete}
+              aria-label={messages.actions.delete}
+              data-testid={`item-delete-${item.id}`}
+            >
+              <Trash2 aria-hidden className="size-4" />
+            </Button>
+          </div>
+        </TableCell>
+      )}
     </TableRow>
   )
 }

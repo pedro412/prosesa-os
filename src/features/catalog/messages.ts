@@ -5,6 +5,11 @@ export const catalogMessages = {
     title: 'Catálogo',
     description: 'Productos, servicios y categorías compartidos entre ambas razones sociales.',
   },
+  readOnly: {
+    badge: 'Solo lectura',
+    title: 'Estás viendo el catálogo en modo consulta.',
+    description: 'Solo administración puede crear, editar o eliminar productos y categorías.',
+  },
   tabs: {
     items: 'Productos',
     categories: 'Categorías',
@@ -50,6 +55,10 @@ export const catalogMessages = {
       price: 'Precio',
       active: 'Activo',
       actions: 'Acciones',
+    },
+    status: {
+      active: 'Activo',
+      inactive: 'Inactivo',
     },
     form: {
       nameLabel: 'Nombre',

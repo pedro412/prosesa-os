@@ -75,7 +75,7 @@ export const navItems: readonly NavItem[] = [
     path: '/catalog',
     label: layoutMessages.nav.catalog,
     icon: Tags,
-    adminOnly: true,
+    adminOnly: false,
     testId: 'nav-catalog',
   },
   {
