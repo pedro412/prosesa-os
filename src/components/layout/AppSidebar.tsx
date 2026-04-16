@@ -16,7 +16,7 @@ export function AppSidebar() {
 
   return (
     <aside
-      className="border-border/60 bg-card hidden w-60 shrink-0 border-r md:block"
+      className="border-border/60 bg-card sticky top-14 hidden h-[calc(100svh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r md:block"
       data-testid="app-sidebar"
     >
       <nav className="flex h-full flex-col gap-1 p-3" aria-label={layoutMessages.nav.groupLabel}>
