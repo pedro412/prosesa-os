@@ -325,6 +325,14 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# invite-user (LIT-65) does its own auth check inside the function:
+# it loads the caller's profile and rejects with 403 unless role='admin',
+# which is stricter than the platform's generic JWT gate. The platform
+# gate is also broken for this project because Auth uses asymmetric
+# (ES256) signing keys, which the gate cannot verify — see LIT-75.
+[functions.invite-user]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
