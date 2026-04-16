@@ -28,6 +28,20 @@ export interface ListCustomersOptions {
   includeDeleted?: boolean
 }
 
+export interface PagedCustomersOptions extends ListCustomersOptions {
+  // Zero-indexed page. Defaults to 0.
+  page?: number
+  // Rows per page. Defaults to 25.
+  pageSize?: number
+}
+
+export interface PagedCustomers {
+  rows: Customer[]
+  totalCount: number
+}
+
+const DEFAULT_PAGE_SIZE = 25
+
 export const customerKeys = {
   all: ['customers'] as const,
   lists: () => [...customerKeys.all, 'list'] as const,
@@ -37,6 +51,17 @@ export const customerKeys = {
       {
         search: opts.search?.trim() ?? '',
         includeDeleted: opts.includeDeleted ?? false,
+      },
+    ] as const,
+  paged: (opts: PagedCustomersOptions = {}) =>
+    [
+      ...customerKeys.lists(),
+      'paged',
+      {
+        search: opts.search?.trim() ?? '',
+        includeDeleted: opts.includeDeleted ?? false,
+        page: opts.page ?? 0,
+        pageSize: opts.pageSize ?? DEFAULT_PAGE_SIZE,
       },
     ] as const,
   detail: (id: string) => [...customerKeys.all, 'detail', id] as const,
@@ -99,6 +124,42 @@ export async function updateCustomer(id: string, patch: CustomerUpdate): Promise
   return data
 }
 
+// Paginated variant for the /clientes list view. Exact count is
+// requested so the UI can render "página X de Y". PostgREST's exact
+// count is slower than estimated on very large tables, but customer
+// volume here is small enough that the accuracy is worth the cost.
+export async function listCustomersPaged(
+  opts: PagedCustomersOptions = {}
+): Promise<PagedCustomers> {
+  const page = Math.max(0, opts.page ?? 0)
+  const pageSize = Math.max(1, opts.pageSize ?? DEFAULT_PAGE_SIZE)
+  const from = page * pageSize
+  const to = from + pageSize - 1
+
+  let query = supabase
+    .from('customers')
+    .select('*', { count: 'exact' })
+    .order('is_publico_general', { ascending: false })
+    .order('nombre', { ascending: true })
+    .range(from, to)
+
+  if (!opts.includeDeleted) {
+    query = query.is('deleted_at', null)
+  }
+
+  if (opts.search) {
+    const sanitized = sanitizeSearch(opts.search)
+    if (sanitized.length > 0) {
+      const pattern = `%${sanitized}%`
+      query = query.or(`nombre.ilike.${pattern},rfc.ilike.${pattern},telefono.ilike.${pattern}`)
+    }
+  }
+
+  const { data, error, count } = await query
+  if (error) throw error
+  return { rows: data ?? [], totalCount: count ?? 0 }
+}
+
 // Soft-delete only. RLS requires admin to set deleted_at.
 export async function softDeleteCustomer(id: string): Promise<Customer> {
   const { data, error } = await supabase
@@ -121,6 +182,15 @@ export function useCustomers(opts: ListCustomersOptions = {}) {
     queryKey: customerKeys.list(opts),
     queryFn: () => listCustomers(opts),
     staleTime: 60_000,
+  })
+}
+
+export function useCustomersPaged(opts: PagedCustomersOptions = {}) {
+  return useQuery({
+    queryKey: customerKeys.paged(opts),
+    queryFn: () => listCustomersPaged(opts),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev, // keep current page visible while the next loads
   })
 }
 

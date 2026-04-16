@@ -1,8 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { PlaceholderPage } from '@/components/layout/PlaceholderPage'
-import { layoutMessages } from '@/components/layout/messages'
+import { CustomersList } from '@/features/customers/CustomersList'
 
 export const Route = createFileRoute('/_app/customers')({
-  component: () => <PlaceholderPage title={layoutMessages.nav.customers} testId="page-customers" />,
+  component: CustomersList,
 })
