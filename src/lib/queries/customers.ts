@@ -7,17 +7,10 @@ import { supabase } from '../supabase'
 export type Customer = Database['public']['Tables']['customers']['Row']
 export type CustomerUpdate = Database['public']['Tables']['customers']['Update']
 
-// Callers don't set actor/audit columns or the sentinel flag — the DB
-// stamps the first via trigger and guards the second via unique index.
+// Callers don't set actor/audit columns — the DB stamps them via trigger.
 export type NewCustomer = Omit<
   Database['public']['Tables']['customers']['Insert'],
-  | 'id'
-  | 'created_at'
-  | 'updated_at'
-  | 'deleted_at'
-  | 'created_by'
-  | 'updated_by'
-  | 'is_publico_general'
+  'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'created_by' | 'updated_by'
 >
 
 export interface ListCustomersOptions {
@@ -75,11 +68,7 @@ function sanitizeSearch(raw: string): string {
 }
 
 export async function listCustomers(opts: ListCustomersOptions = {}): Promise<Customer[]> {
-  let query = supabase
-    .from('customers')
-    .select('*')
-    .order('is_publico_general', { ascending: false }) // sentinel always first
-    .order('nombre', { ascending: true })
+  let query = supabase.from('customers').select('*').order('nombre', { ascending: true })
 
   if (!opts.includeDeleted) {
     query = query.is('deleted_at', null)
@@ -139,7 +128,6 @@ export async function listCustomersPaged(
   let query = supabase
     .from('customers')
     .select('*', { count: 'exact' })
-    .order('is_publico_general', { ascending: false })
     .order('nombre', { ascending: true })
     .range(from, to)
 

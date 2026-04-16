@@ -19,15 +19,12 @@ export const customersMessages = {
     pageOf: (current: number, total: number) => `Página ${current} de ${total}`,
     previous: 'Anterior',
     next: 'Siguiente',
-    sentinelBadge: 'Predeterminado',
-    invoiceBadge: 'Requiere factura',
   },
   columns: {
     nombre: 'Nombre',
     rfc: 'RFC',
     telefono: 'Teléfono',
     email: 'Correo',
-    flags: 'Etiquetas',
     actions: 'Acciones',
   },
   actions: {
@@ -44,8 +41,6 @@ export const customersMessages = {
     cpFiscalLabel: 'Código postal',
     telefonoLabel: 'Teléfono',
     emailLabel: 'Correo electrónico',
-    requiereFacturaLabel: 'Requiere factura',
-    requiereFacturaHelp: 'Marca cuando el cliente necesita CFDI.',
     notasLabel: 'Notas',
     notasPlaceholder: 'Datos útiles para el equipo de ventas.',
     save: 'Guardar',
@@ -79,5 +74,4 @@ export const customersMessages = {
     deleteSuccess: 'Cliente eliminado.',
     genericError: 'Ocurrió un problema. Intenta de nuevo.',
   },
-  sentinelReadOnly: 'El cliente "Público en general" no es editable.',
 } as const

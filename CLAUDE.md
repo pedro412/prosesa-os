@@ -149,7 +149,7 @@ These are principles, not a frozen schema. Design actual tables from these.
 - Status changes on `work_orders` go into an append-only log: `old_status`, `new_status`, `changed_at`, `changed_by`, optional `note`. Backward transitions are allowed (rework).
 - Inventory movements are append-only. Types: `entrada`, `salida_por_orden`, `salida_manual`, `ajuste`. Each movement links to the work order if applicable and always to a user.
 - A sales note has 0..1 work order. A work order belongs to exactly one sales note and inherits `company_id` and `customer_id`.
-- Customers: `"Público en general"` is a seeded sentinel row per company settings, using the Mexican SAT generic RFC `XAXX010101000`. Counter sales default to this customer when none is selected.
+- Customers: attachment on sales notes / quotations / work orders is **optional** — a walk-in counter sale can mint a ticket with no customer at all. When a document needs to render an RFC and the attached customer has none (or no customer is attached), the printed output uses the SAT generic `XAXX010101000`. That fallback lives in the document-printing code (M3-1 sales_notes, M4-3 work_orders), **not** as a row in `customers`. The per-document `requiere_factura` flag lives on those same document tables, not on customers — the same person can want a factura on one order and skip it on the next.
 - Leave nullable FK space for things coming in Phase 2: `invoice_id` on sales notes, `purchase_order_id` on inventory entradas, `quotation_id` on sales notes.
 - **Work order line-item shape is an open research item** (see Linear ticket `R-1`): structured fields (dimensions, material, finishes) vs. freeform text vs. hybrid. Do not lock the schema without resolving this ticket — investigate how comparable shops model it and pick an approach that preserves future analytics.
 - **Audit log**: single `audit_logs` table + generic Postgres trigger attached to `sales_notes`, `work_orders`, `work_order_status_log`, `inventory_movements`, `pos_sales`. Schema per tech decisions:
@@ -319,9 +319,10 @@ See SPEC §9 for scoping detail on each.
 
 Tracks changes to this agent contract only (rules, scope decisions, stack locks). Product/release changes live in the root [`README.md`](./README.md#changelog).
 
-| Date       | Change                                                                                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 2026-04-14 | Initial agent contract for Phase 1.                                                                                                                                                  |
-| 2026-04-15 | Deployment model: `main` → staging, new `production` long-lived branch → prod (release workflow, Phase 2). CI via GitHub Actions.                                                    |
-| 2026-04-15 | Per-PR Vercel preview deployments disabled — only `staging` (main) and `production` environments. QA happens on the staging URL after merge.                                         |
-| 2026-04-15 | §6 multi-company: company choice is per-document (picker lives in sale/quotation form), not a global session. Shared catalog/inventory/customers/work-orders are unscoped in the UI. |
+| Date       | Change                                                                                                                                                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-14 | Initial agent contract for Phase 1.                                                                                                                                                    |
+| 2026-04-15 | Deployment model: `main` → staging, new `production` long-lived branch → prod (release workflow, Phase 2). CI via GitHub Actions.                                                      |
+| 2026-04-15 | Per-PR Vercel preview deployments disabled — only `staging` (main) and `production` environments. QA happens on the staging URL after merge.                                           |
+| 2026-04-15 | §6 multi-company: company choice is per-document (picker lives in sale/quotation form), not a global session. Shared catalog/inventory/customers/work-orders are unscoped in the UI.   |
+| 2026-04-16 | §7 customers: customer attachment on documents is optional; `XAXX010101000` fallback and `requiere_factura` live on sales_notes / work_orders / quotations, not on customers (LIT-67). |

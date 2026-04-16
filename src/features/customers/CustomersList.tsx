@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Plus, Search, Trash2 } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -121,7 +120,6 @@ export function CustomersList() {
                 <TableHead>{messages.columns.rfc}</TableHead>
                 <TableHead>{messages.columns.telefono}</TableHead>
                 <TableHead>{messages.columns.email}</TableHead>
-                <TableHead>{messages.columns.flags}</TableHead>
                 <TableHead className="sr-only">{messages.columns.actions}</TableHead>
               </TableRow>
             </TableHeader>
@@ -202,9 +200,6 @@ interface CustomerRowProps {
 
 function CustomerRow({ customer, admin, onEdit, onDelete }: CustomerRowProps) {
   const messages = customersMessages
-  const isSentinel = customer.is_publico_general
-  const canEdit = !isSentinel
-  const canDelete = !isSentinel && admin
 
   return (
     <TableRow data-testid={`customer-row-${customer.id}`}>
@@ -214,26 +209,17 @@ function CustomerRow({ customer, admin, onEdit, onDelete }: CustomerRowProps) {
       </TableCell>
       <TableCell className="text-muted-foreground">{customer.telefono ?? '—'}</TableCell>
       <TableCell className="text-muted-foreground">{customer.email ?? '—'}</TableCell>
-      <TableCell>
-        <div className="flex flex-wrap gap-1.5">
-          {isSentinel && <Badge variant="secondary">{messages.list.sentinelBadge}</Badge>}
-          {customer.requiere_factura && (
-            <Badge variant="outline">{messages.list.invoiceBadge}</Badge>
-          )}
-        </div>
-      </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-1">
           <Button
             variant="outline"
             size="sm"
             onClick={onEdit}
-            disabled={!canEdit}
             data-testid={`customer-edit-${customer.id}`}
           >
             {messages.actions.edit}
           </Button>
-          {canDelete && (
+          {admin && (
             <Button
               variant="outline"
               size="sm"

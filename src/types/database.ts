@@ -149,12 +149,10 @@ export type Database = {
           deleted_at: string | null
           email: string | null
           id: string
-          is_publico_general: boolean
           nombre: string
           notas: string | null
           razon_social: string | null
           regimen_fiscal: string | null
-          requiere_factura: boolean
           rfc: string | null
           telefono: string | null
           updated_at: string
@@ -167,12 +165,10 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           id?: string
-          is_publico_general?: boolean
           nombre: string
           notas?: string | null
           razon_social?: string | null
           regimen_fiscal?: string | null
-          requiere_factura?: boolean
           rfc?: string | null
           telefono?: string | null
           updated_at?: string
@@ -185,12 +181,10 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           id?: string
-          is_publico_general?: boolean
           nombre?: string
           notas?: string | null
           razon_social?: string | null
           regimen_fiscal?: string | null
-          requiere_factura?: boolean
           rfc?: string | null
           telefono?: string | null
           updated_at?: string

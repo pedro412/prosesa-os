@@ -3,7 +3,6 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -39,7 +38,6 @@ interface FormState {
   cp_fiscal: string
   telefono: string
   email: string
-  requiere_factura: boolean
   notas: string
 }
 
@@ -53,7 +51,6 @@ const blankState: FormState = {
   cp_fiscal: '',
   telefono: '',
   email: '',
-  requiere_factura: false,
   notas: '',
 }
 
@@ -69,7 +66,6 @@ function toFormState(customer: Customer | undefined, initialNombre: string | und
     cp_fiscal: customer.cp_fiscal ?? '',
     telefono: customer.telefono ?? '',
     email: customer.email ?? '',
-    requiere_factura: customer.requiere_factura,
     notas: customer.notas ?? '',
   }
 }
@@ -104,7 +100,6 @@ const schema = z.object({
       },
       { message: customersMessages.form.errors.emailFormat }
     ),
-  requiere_factura: z.boolean(),
   notas: z.string().optional(),
 })
 
@@ -125,7 +120,6 @@ function buildCreatePayload(state: FormState): NewCustomer {
     cp_fiscal: blankToNull(state.cp_fiscal),
     telefono: blankToNull(state.telefono),
     email: blankToNull(state.email),
-    requiere_factura: state.requiere_factura,
     notas: blankToNull(state.notas),
   }
 }
@@ -152,10 +146,6 @@ function buildUpdatePatch(customer: Customer, state: FormState) {
 
   const email = blankToNull(state.email)
   if (email !== customer.email) patch.email = email
-
-  if (state.requiere_factura !== customer.requiere_factura) {
-    patch.requiere_factura = state.requiere_factura
-  }
 
   const notas = blankToNull(state.notas)
   if (notas !== customer.notas) patch.notas = notas
@@ -313,19 +303,6 @@ export function CustomerForm({
           disabled={submitting}
         />
         {fieldErrors.email && <p className="text-destructive text-sm">{fieldErrors.email}</p>}
-      </div>
-
-      <div className="flex items-start gap-3 md:col-span-2">
-        <Checkbox
-          id="customer-requiere-factura"
-          checked={state.requiere_factura}
-          onCheckedChange={(v) => onField('requiere_factura')(v === true)}
-          disabled={submitting}
-        />
-        <div className="space-y-1">
-          <Label htmlFor="customer-requiere-factura">{messages.requiereFacturaLabel}</Label>
-          <p className="text-muted-foreground text-xs">{messages.requiereFacturaHelp}</p>
-        </div>
       </div>
 
       <div className="space-y-2 md:col-span-2">
