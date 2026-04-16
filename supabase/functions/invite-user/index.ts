@@ -111,11 +111,21 @@ Deno.serve(async (req) => {
     return jsonError({ error: 'invalid_role', message: 'Rol inválido' }, 400)
   }
 
-  // Build the redirect from the request origin so invites land back on
-  // the app that made the call (staging or prod). Falls back to the
-  // Supabase auth dashboard's site_url if no origin header is present.
+  // Resolve the app URL embedded in the invite email.
+  //
+  // APP_BASE_URL is a per-project Supabase secret pointing at the
+  // canonical app for this environment (staging URL on staging
+  // Supabase, prod URL on prod). We prefer it over the request Origin
+  // because the caller's browser shouldn't decide where the recipient
+  // lands — an admin inviting from localhost dev would otherwise embed
+  // an unreachable URL in the email (LIT-76).
+  //
+  // Fallback to Origin keeps `supabase functions serve` against a local
+  // app working out of the box, with no secret configured.
+  const appBaseUrl = (Deno.env.get('APP_BASE_URL') ?? '').replace(/\/+$/, '')
   const origin = req.headers.get('origin')
-  const redirectTo = origin ? `${origin}/auth/update-password?flow=invite` : undefined
+  const redirectBase = appBaseUrl || origin
+  const redirectTo = redirectBase ? `${redirectBase}/auth/update-password?flow=invite` : undefined
 
   const adminClient: SupabaseClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
