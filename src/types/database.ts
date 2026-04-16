@@ -357,6 +357,25 @@ export type Database = {
       }
       current_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      list_admin_profiles: {
+        Args: {
+          p_include_deleted?: boolean
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          created_at: string
+          deleted_at: string
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+          last_sign_in_at: string
+          role: string
+          total_count: number
+          updated_at: string
+        }[]
+      }
       next_folio: {
         Args: { p_company_id: string; p_doc_type: string }
         Returns: string

@@ -73,3 +73,40 @@ Use sparingly — normal flow is dashboard invite → self-service password. Thi
 - Soft delete: `UPDATE public.profiles SET deleted_at=now() WHERE email='...';` — also consider disabling the `auth.users` row via the dashboard so they can't log in.
 
 Never `DELETE` from `profiles` or `auth.users` for a real user — it breaks historical references from sales notes, work orders, and audit logs.
+
+## In-app user management (admins)
+
+Once the staging deploy of LIT-65 lands, admins manage day-to-day users directly from `/settings/users` instead of the SQL paths above. The SQL paths stay as the **last-resort recovery** when no admin can log in.
+
+### What the UI does
+
+- **Invite** — calls the Edge Function `invite-user`, which authenticates the caller, validates the body, and forwards to `auth.admin.inviteUserByEmail` with the service-role key. The `handle_new_user` trigger creates the profile with `role='ventas'`; if the inviter chose `admin`, the function bumps the role afterward.
+- **Change role / toggle active / soft delete / restore** — direct UPDATEs against `public.profiles` via the existing admin RLS policies.
+- **List** — calls `public.list_admin_profiles(p_include_deleted, p_limit, p_offset)`, a SECURITY DEFINER function that joins `profiles` with `auth.users.last_sign_in_at` so the UI can show "último acceso" without exposing `auth.users` to the client.
+
+### Server-enforced invariants (migration `20260416195226_profiles_admin_extras.sql`)
+
+- **Self-mutation guard** — an admin cannot demote, deactivate, or soft-delete their own profile through the app. Migrations bypass via `auth.uid() = null`.
+- **Last-admin protection** — any UPDATE that would leave zero usable admins (active, non-deleted, role='admin') is rejected with a Spanish error.
+- **Audit** — `audit.attach('profiles')` records every role / `is_active` / `deleted_at` change in `public.audit_logs`.
+
+### Deploying the Edge Function
+
+Supabase auto-injects `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` into the function environment — no extra secrets to set.
+
+```bash
+# Local (against `supabase start`)
+supabase functions serve invite-user
+
+# Staging
+supabase functions deploy invite-user --project-ref comfhqhigiighmwuxfbb
+
+# Production (when LIT-59 provisions the prod project)
+supabase functions deploy invite-user --project-ref <prod-ref>
+```
+
+The function reads the request `Origin` header to construct the invite's `redirectTo` (`<origin>/auth/update-password?flow=invite`), so invites from staging route back to staging and prod routes to prod without per-environment config.
+
+### Recovery paths still apply
+
+If every admin loses access, fall back to the SQL editor + `promote-admin.sql`. The in-app guards explicitly forbid demoting the last admin to prevent that scenario, but the recovery script remains the documented escape hatch.

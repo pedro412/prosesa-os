@@ -3,7 +3,12 @@
 export const settingsMessages = {
   page: {
     title: 'Configuración',
-    description: 'Administra las razones sociales y parámetros fiscales de Prosesa.',
+    description:
+      'Administra las razones sociales, los usuarios y los parámetros fiscales de Prosesa.',
+  },
+  tabs: {
+    companies: 'Empresas',
+    users: 'Usuarios',
   },
   companies: {
     sectionTitle: 'Razones sociales',
