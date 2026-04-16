@@ -382,6 +382,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      update_own_full_name: {
+        Args: { p_full_name: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { Profile, ProfileRole } from '@/types/profile'
 
@@ -49,4 +49,26 @@ export function isAdmin(profile: Pick<Profile, 'role'> | null | undefined) {
 
 export function isVentas(profile: Pick<Profile, 'role'> | null | undefined) {
   return hasRole(profile, 'ventas')
+}
+
+// Calls the SECURITY DEFINER function shipped in LIT-73 — the narrowest
+// API for self-edit (only full_name, only on the caller's own row).
+// Validation lives in the function; the client-side mutation just
+// surfaces the result.
+export async function updateOwnFullName(name: string): Promise<void> {
+  const { error } = await supabase.rpc('update_own_full_name', { p_full_name: name })
+  if (error) throw error
+}
+
+export function useUpdateOwnFullName() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: updateOwnFullName,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: profileKeys.current() })
+      // Admin user list also shows full_name — keep it in sync without
+      // forcing the user to refresh /settings/users.
+      qc.invalidateQueries({ queryKey: ['admin-profiles'] })
+    },
+  })
 }
