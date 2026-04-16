@@ -39,15 +39,20 @@ interface SettingsTabProps {
 }
 
 function SettingsTab({ to, testId, children }: SettingsTabProps) {
+  // Split base / active / inactive so each prop only contributes
+  // non-overlapping utilities. TanStack Router concatenates className
+  // + activeProps.className without tailwind-merge, so any utility
+  // present in both (border-color, text-color) hits the cascade
+  // unresolved and the active state visually disappears.
   return (
     <li>
       <Link
         to={to}
         data-testid={testId}
-        className="-mb-px inline-block border-b-2 border-transparent px-3 pb-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        activeProps={{
-          className:
-            '-mb-px inline-block border-b-2 border-foreground px-3 pb-2 text-sm font-medium text-foreground',
+        className="-mb-px inline-block border-b-2 px-3 pb-2 text-sm font-medium transition-colors"
+        activeProps={{ className: 'border-foreground text-foreground' }}
+        inactiveProps={{
+          className: 'border-transparent text-muted-foreground hover:text-foreground',
         }}
       >
         {children}
