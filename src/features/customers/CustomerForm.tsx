@@ -1,11 +1,25 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  findRegimenByClave,
+  type RegimenAplicaA,
+  satRegimenByGroup,
+} from '@/lib/constants/sat-regimen-fiscal'
 import {
   type Customer,
   type NewCustomer,
@@ -54,6 +68,12 @@ const blankState: FormState = {
   notas: '',
 }
 
+// Shown in the Select when the existing regimen_fiscal value isn't
+// in the current SAT catalog (legacy free-text captures pre-LIT-80).
+// Used as a sentinel: if the user opens the Select and picks anything
+// else, the legacy value is overwritten on save.
+const SELECT_NONE = '__none__'
+
 function toFormState(customer: Customer | undefined, initialNombre: string | undefined): FormState {
   if (!customer) {
     return { ...blankState, nombre: initialNombre ?? '' }
@@ -70,7 +90,8 @@ function toFormState(customer: Customer | undefined, initialNombre: string | und
   }
 }
 
-// Zod schema. All text fields are allowed empty; blanks are later
+// Zod schema. Nombre and telefono are required per LIT-80 AC; the rest
+// stay optional but are format-validated when present. Blanks are
 // converted to null before the DB write so we don't pollute rows with
 // empty strings.
 const schema = z.object({
@@ -89,7 +110,10 @@ const schema = z.object({
     .refine((v) => !v || v.trim() === '' || /^\d{5}$/.test(v.trim()), {
       message: customersMessages.form.errors.cpFormat,
     }),
-  telefono: z.string().optional(),
+  telefono: z
+    .string()
+    .min(1, customersMessages.form.errors.telefonoRequired)
+    .regex(/^\d{10}$/, customersMessages.form.errors.telefonoFormat),
   email: z
     .string()
     .optional()
@@ -108,9 +132,12 @@ const blankToNull = (value: string): string | null => {
   return trimmed === '' ? null : trimmed
 }
 
-// Builds the payload to send. In edit mode we produce a partial with
-// only the fields that actually changed; in create mode we send the
-// full shape.
+// Strip any non-digit and clip to 10. Handles typed digits and the
+// "55 (938) 123-4567" paste case in a single code path.
+function sanitizeTelefono(raw: string): string {
+  return raw.replace(/\D/g, '').slice(0, 10)
+}
+
 function buildCreatePayload(state: FormState): NewCustomer {
   return {
     nombre: state.nombre.trim(),
@@ -118,7 +145,7 @@ function buildCreatePayload(state: FormState): NewCustomer {
     rfc: state.rfc ? normalizeRfc(state.rfc) : null,
     regimen_fiscal: blankToNull(state.regimen_fiscal),
     cp_fiscal: blankToNull(state.cp_fiscal),
-    telefono: blankToNull(state.telefono),
+    telefono: state.telefono,
     email: blankToNull(state.email),
     notas: blankToNull(state.notas),
   }
@@ -141,8 +168,7 @@ function buildUpdatePatch(customer: Customer, state: FormState) {
   const cp = blankToNull(state.cp_fiscal)
   if (cp !== customer.cp_fiscal) patch.cp_fiscal = cp
 
-  const tel = blankToNull(state.telefono)
-  if (tel !== customer.telefono) patch.telefono = tel
+  if (state.telefono !== customer.telefono) patch.telefono = state.telefono
 
   const email = blankToNull(state.email)
   if (email !== customer.email) patch.email = email
@@ -169,6 +195,17 @@ export function CustomerForm({
   const toastMessages = customersMessages.toast
 
   const submitting = createMutation.isPending || updateMutation.isPending
+
+  // Drives the Save button. Recomputes on every edit so the form
+  // feels responsive; the schema is small enough that reparse cost
+  // is negligible.
+  const isValid = useMemo(() => schema.safeParse(state).success, [state])
+
+  // If the stored regimen_fiscal doesn't match the current SAT catalog,
+  // surface the legacy clave as a dedicated Select option so we don't
+  // silently overwrite it when the user saves an untouched form.
+  const regimenIsLegacy =
+    state.regimen_fiscal !== '' && findRegimenByClave(state.regimen_fiscal) === null
 
   function onField<K extends keyof FormState>(key: K) {
     return (value: FormState[K]) => setState((prev) => ({ ...prev, [key]: value }))
@@ -218,13 +255,16 @@ export function CustomerForm({
       data-testid="customer-form"
     >
       <div className="space-y-2 md:col-span-2">
-        <Label htmlFor="customer-nombre">{messages.nombreLabel}</Label>
+        <Label htmlFor="customer-nombre">
+          {messages.nombreLabel} <span aria-hidden>*</span>
+        </Label>
         <Input
           id="customer-nombre"
           value={state.nombre}
           onChange={(e) => onField('nombre')(e.target.value)}
           placeholder={messages.nombrePlaceholder}
           aria-invalid={fieldErrors.nombre ? true : undefined}
+          aria-required
           disabled={submitting}
           autoFocus
         />
@@ -232,6 +272,37 @@ export function CustomerForm({
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="customer-telefono">
+          {messages.telefonoLabel} <span aria-hidden>*</span>
+        </Label>
+        <Input
+          id="customer-telefono"
+          value={state.telefono}
+          onChange={(e) => onField('telefono')(sanitizeTelefono(e.target.value))}
+          placeholder={messages.telefonoPlaceholder}
+          inputMode="numeric"
+          maxLength={10}
+          aria-invalid={fieldErrors.telefono ? true : undefined}
+          aria-required
+          disabled={submitting}
+        />
+        {fieldErrors.telefono && <p className="text-destructive text-sm">{fieldErrors.telefono}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="customer-email">{messages.emailLabel}</Label>
+        <Input
+          id="customer-email"
+          value={state.email}
+          onChange={(e) => onField('email')(e.target.value)}
+          inputMode="email"
+          aria-invalid={fieldErrors.email ? true : undefined}
+          disabled={submitting}
+        />
+        {fieldErrors.email && <p className="text-destructive text-sm">{fieldErrors.email}</p>}
+      </div>
+
+      <div className="space-y-2 md:col-span-2">
         <Label htmlFor="customer-razon">{messages.razonSocialLabel}</Label>
         <Input
           id="customer-razon"
@@ -239,6 +310,7 @@ export function CustomerForm({
           onChange={(e) => onField('razon_social')(e.target.value)}
           disabled={submitting}
         />
+        <p className="text-muted-foreground text-xs">{messages.razonSocialHelp}</p>
       </div>
 
       <div className="space-y-2">
@@ -257,12 +329,33 @@ export function CustomerForm({
 
       <div className="space-y-2">
         <Label htmlFor="customer-regimen">{messages.regimenFiscalLabel}</Label>
-        <Input
-          id="customer-regimen"
-          value={state.regimen_fiscal}
-          onChange={(e) => onField('regimen_fiscal')(e.target.value)}
+        <Select
+          value={state.regimen_fiscal === '' ? SELECT_NONE : state.regimen_fiscal}
+          onValueChange={(value) => onField('regimen_fiscal')(value === SELECT_NONE ? '' : value)}
           disabled={submitting}
-        />
+        >
+          <SelectTrigger id="customer-regimen" className="w-full">
+            <SelectValue placeholder={messages.regimenFiscalPlaceholder} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SELECT_NONE}>—</SelectItem>
+            {regimenIsLegacy && (
+              <SelectItem value={state.regimen_fiscal}>
+                {messages.regimenFiscalLegacy(state.regimen_fiscal)}
+              </SelectItem>
+            )}
+            {(['fisica', 'moral', 'ambas'] as RegimenAplicaA[]).map((group) => (
+              <SelectGroup key={group}>
+                <SelectLabel>{messages.regimenFiscalGroups[group]}</SelectLabel>
+                {satRegimenByGroup[group].map((r) => (
+                  <SelectItem key={r.clave} value={r.clave}>
+                    {r.clave} · {r.descripcion}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
@@ -281,30 +374,6 @@ export function CustomerForm({
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="customer-telefono">{messages.telefonoLabel}</Label>
-        <Input
-          id="customer-telefono"
-          value={state.telefono}
-          onChange={(e) => onField('telefono')(e.target.value)}
-          inputMode="tel"
-          disabled={submitting}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="customer-email">{messages.emailLabel}</Label>
-        <Input
-          id="customer-email"
-          value={state.email}
-          onChange={(e) => onField('email')(e.target.value)}
-          inputMode="email"
-          aria-invalid={fieldErrors.email ? true : undefined}
-          disabled={submitting}
-        />
-        {fieldErrors.email && <p className="text-destructive text-sm">{fieldErrors.email}</p>}
-      </div>
-
       <div className="space-y-2 md:col-span-2">
         <Label htmlFor="customer-notas">{messages.notasLabel}</Label>
         <Textarea
@@ -317,15 +386,22 @@ export function CustomerForm({
         />
       </div>
 
-      <div className="flex justify-end gap-2 md:col-span-2">
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
-            {messages.cancel}
+      <div className="flex flex-col-reverse items-stretch gap-2 md:col-span-2 md:flex-row md:items-center md:justify-between">
+        <p className="text-muted-foreground text-xs">{messages.requiredHint}</p>
+        <div className="flex justify-end gap-2">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
+              {messages.cancel}
+            </Button>
+          )}
+          <Button
+            type="submit"
+            disabled={submitting || !isValid}
+            data-testid="customer-form-submit"
+          >
+            {submitting ? messages.saving : messages.save}
           </Button>
-        )}
-        <Button type="submit" disabled={submitting} data-testid="customer-form-submit">
-          {submitting ? messages.saving : messages.save}
-        </Button>
+        </div>
       </div>
     </form>
   )
