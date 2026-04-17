@@ -19,7 +19,7 @@ import { CustomerDeleteDialog } from './CustomerDeleteDialog'
 import { CustomerFormDialog } from './CustomerFormDialog'
 import { customersMessages } from './messages'
 
-const PAGE_SIZE = 25
+const PAGE_SIZE = 10
 
 export function CustomersList() {
   const [search, setSearch] = useState('')
@@ -31,7 +31,7 @@ export function CustomersList() {
   const profile = useCurrentProfile()
   const admin = isAdmin(profile.data)
 
-  const { data, isPending, isError, isFetching } = useCustomersPaged({
+  const { data, isPending, isError } = useCustomersPaged({
     search,
     page,
     pageSize: PAGE_SIZE,
@@ -151,7 +151,7 @@ export function CustomersList() {
               variant="outline"
               size="sm"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={isFirstPage || isFetching}
+              disabled={isFirstPage}
               data-testid="customers-prev"
             >
               {messages.list.previous}
@@ -159,8 +159,8 @@ export function CustomersList() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={isLastPage || isFetching}
+              onClick={() => setPage((p) => (isLastPage ? p : p + 1))}
+              disabled={isLastPage}
               data-testid="customers-next"
             >
               {messages.list.next}
