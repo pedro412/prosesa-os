@@ -313,6 +313,47 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          method: string
+          notes: string | null
+          paid_at: string
+          sales_note_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method: string
+          notes?: string | null
+          paid_at?: string
+          sales_note_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_at?: string
+          sales_note_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_sales_note_id_fkey"
+            columns: ["sales_note_id"]
+            isOneToOne: false
+            referencedRelation: "sales_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -345,6 +386,159 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sales_note_lines: {
+        Row: {
+          catalog_item_id: string | null
+          concept: string
+          created_at: string
+          dimensions: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          line_total: number
+          material: string | null
+          quantity: number
+          sales_note_id: string
+          sort_order: number
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          catalog_item_id?: string | null
+          concept: string
+          created_at?: string
+          dimensions?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          line_total: number
+          material?: string | null
+          quantity: number
+          sales_note_id: string
+          sort_order?: number
+          unit: string
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          catalog_item_id?: string | null
+          concept?: string
+          created_at?: string
+          dimensions?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          line_total?: number
+          material?: string | null
+          quantity?: number
+          sales_note_id?: string
+          sort_order?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_note_lines_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_note_lines_sales_note_id_fkey"
+            columns: ["sales_note_id"]
+            isOneToOne: false
+            referencedRelation: "sales_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_notes: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          folio: string
+          id: string
+          iva: number
+          iva_inclusive_snapshot: boolean
+          iva_rate_snapshot: number
+          notes: string | null
+          requires_invoice: boolean
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          updated_by: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          folio: string
+          id?: string
+          iva?: number
+          iva_inclusive_snapshot: boolean
+          iva_rate_snapshot: number
+          notes?: string | null
+          requires_invoice?: boolean
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          updated_by?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          folio?: string
+          id?: string
+          iva?: number
+          iva_inclusive_snapshot?: boolean
+          iva_rate_snapshot?: number
+          notes?: string | null
+          requires_invoice?: boolean
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          updated_by?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
