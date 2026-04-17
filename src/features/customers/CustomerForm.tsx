@@ -22,6 +22,9 @@ import {
 } from '@/lib/constants/sat-regimen-fiscal'
 import {
   type Customer,
+  DuplicateCustomerError,
+  findCustomerByEmail,
+  findCustomerByTelefono,
   type NewCustomer,
   useCreateCustomer,
   useUpdateCustomer,
@@ -42,6 +45,10 @@ export interface CustomerFormProps {
   // closes itself here.
   onSaved?: (customer: Customer) => void
   onCancel?: () => void
+  // On a 23505 collision the form offers "Ver cliente existente". The
+  // parent decides what happens — the list view closes the create
+  // dialog and pops the found customer's edit dialog.
+  onRequestEditExisting?: (customer: Customer) => void
 }
 
 interface FormState {
@@ -185,9 +192,16 @@ export function CustomerForm({
   initialNombre,
   onSaved,
   onCancel,
+  onRequestEditExisting,
 }: CustomerFormProps) {
   const [state, setState] = useState<FormState>(() => toFormState(customer, initialNombre))
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  // Populated when a 23505 comes back — we fetch the colliding row so
+  // the "Ver cliente existente" action knows where to jump to.
+  const [duplicate, setDuplicate] = useState<{
+    field: 'telefono' | 'email'
+    customer: Customer
+  } | null>(null)
 
   const createMutation = useCreateCustomer()
   const updateMutation = useUpdateCustomer()
@@ -225,6 +239,7 @@ export function CustomerForm({
       return
     }
     setFieldErrors({})
+    setDuplicate(null)
 
     try {
       if (mode === 'create') {
@@ -242,7 +257,24 @@ export function CustomerForm({
         toast.success(toastMessages.updateSuccess)
         onSaved?.(updated)
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DuplicateCustomerError) {
+        const messageKey = err.field === 'telefono' ? 'telefonoDuplicate' : 'emailDuplicate'
+        setFieldErrors({ [err.field]: messages.errors[messageKey] })
+        // Fetch the colliding row so the action button has somewhere
+        // to jump to. If the lookup fails we still show the field
+        // error — users just won't get the shortcut.
+        try {
+          const dup =
+            err.field === 'telefono'
+              ? await findCustomerByTelefono(state.telefono)
+              : await findCustomerByEmail(state.email)
+          if (dup) setDuplicate({ field: err.field, customer: dup })
+        } catch {
+          // Swallow — the field error is enough to unblock the user.
+        }
+        return
+      }
       toast.error(toastMessages.genericError)
     }
   }
@@ -287,6 +319,15 @@ export function CustomerForm({
           disabled={submitting}
         />
         {fieldErrors.telefono && <p className="text-destructive text-sm">{fieldErrors.telefono}</p>}
+        {duplicate?.field === 'telefono' && onRequestEditExisting && (
+          <button
+            type="button"
+            className="text-primary text-sm font-medium underline underline-offset-2 hover:opacity-80"
+            onClick={() => onRequestEditExisting(duplicate.customer)}
+          >
+            {messages.duplicateAction} · {duplicate.customer.nombre}
+          </button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -300,6 +341,15 @@ export function CustomerForm({
           disabled={submitting}
         />
         {fieldErrors.email && <p className="text-destructive text-sm">{fieldErrors.email}</p>}
+        {duplicate?.field === 'email' && onRequestEditExisting && (
+          <button
+            type="button"
+            className="text-primary text-sm font-medium underline underline-offset-2 hover:opacity-80"
+            onClick={() => onRequestEditExisting(duplicate.customer)}
+          >
+            {messages.duplicateAction} · {duplicate.customer.nombre}
+          </button>
+        )}
       </div>
 
       <div className="space-y-2 md:col-span-2">

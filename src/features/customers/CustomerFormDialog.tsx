@@ -21,6 +21,10 @@ export interface CustomerFormDialogProps {
   // Fires after a successful save, before the dialog closes. POS uses
   // this to auto-select the freshly created customer.
   onSaved?: (customer: Customer) => void
+  // Forwarded from CustomerForm — invoked when the user clicks
+  // "Ver cliente existente" after a duplicate-key error. The list view
+  // uses it to switch from create to edit mode on the colliding row.
+  onRequestEditExisting?: (customer: Customer) => void
 }
 
 // Shared dialog for both create and edit. Keys the inner form by
@@ -33,6 +37,7 @@ export function CustomerFormDialog({
   open,
   onOpenChange,
   onSaved,
+  onRequestEditExisting,
 }: CustomerFormDialogProps) {
   const copy = mode === 'create' ? customersMessages.createDialog : customersMessages.editDialog
   const formKey = mode === 'edit' ? (customer?.id ?? 'edit-empty') : `create-${initialNombre ?? ''}`
@@ -59,6 +64,7 @@ export function CustomerFormDialog({
               onOpenChange(false)
             }}
             onCancel={() => onOpenChange(false)}
+            onRequestEditExisting={onRequestEditExisting}
           />
         )}
       </DialogContent>

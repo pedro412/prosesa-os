@@ -243,7 +243,7 @@ export type Database = {
           razon_social: string | null
           regimen_fiscal: string | null
           rfc: string | null
-          telefono: string | null
+          telefono: string
           updated_at: string
           updated_by: string | null
         }
@@ -259,7 +259,7 @@ export type Database = {
           razon_social?: string | null
           regimen_fiscal?: string | null
           rfc?: string | null
-          telefono?: string | null
+          telefono: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -275,7 +275,7 @@ export type Database = {
           razon_social?: string | null
           regimen_fiscal?: string | null
           rfc?: string | null
-          telefono?: string | null
+          telefono?: string
           updated_at?: string
           updated_by?: string | null
         }
