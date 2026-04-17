@@ -169,7 +169,18 @@ export function CustomersList() {
         </div>
       )}
 
-      <CustomerFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />
+      <CustomerFormDialog
+        mode="create"
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onRequestEditExisting={(existing) => {
+          // User hit a duplicate on create — jump to the colliding
+          // row's edit dialog so they can update it instead of fighting
+          // the unique constraint.
+          setCreateOpen(false)
+          setEditing(existing)
+        }}
+      />
 
       <CustomerFormDialog
         mode="edit"
@@ -177,6 +188,11 @@ export function CustomersList() {
         open={editing !== null}
         onOpenChange={(open) => {
           if (!open) setEditing(null)
+        }}
+        onRequestEditExisting={(existing) => {
+          // Same collision UX when editing: swap the dialog contents
+          // to the actual owner of the conflicting field.
+          setEditing(existing)
         }}
       />
 

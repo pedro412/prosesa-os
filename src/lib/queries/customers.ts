@@ -94,11 +94,34 @@ export async function getCustomer(id: string): Promise<Customer | null> {
   return data
 }
 
+// Thrown when a create/update would violate a customers unique index.
+// The form uses `field` to attach the error inline and fetch the
+// conflicting row for the "Ver cliente existente" action.
+export class DuplicateCustomerError extends Error {
+  constructor(public field: 'telefono' | 'email') {
+    super(`duplicate customer.${field}`)
+    this.name = 'DuplicateCustomerError'
+  }
+}
+
+// PostgREST surfaces Postgres 23505 (unique_violation) with the
+// constraint name in the error message. Map it back to the field that
+// triggered it so the form can render a per-field message.
+function translateWriteError(err: { code?: string; message?: string } | null): Error | null {
+  if (!err) return null
+  if (err.code !== '23505') return err as Error
+  const msg = err.message ?? ''
+  if (msg.includes('customers_telefono_unique')) return new DuplicateCustomerError('telefono')
+  if (msg.includes('customers_email_unique')) return new DuplicateCustomerError('email')
+  return err as Error
+}
+
 export async function createCustomer(input: NewCustomer): Promise<Customer> {
   const { data, error } = await supabase.from('customers').insert(input).select('*').single()
 
-  if (error) throw error
-  return data
+  const translated = translateWriteError(error)
+  if (translated) throw translated
+  return data as Customer
 }
 
 export async function updateCustomer(id: string, patch: CustomerUpdate): Promise<Customer> {
@@ -109,6 +132,34 @@ export async function updateCustomer(id: string, patch: CustomerUpdate): Promise
     .select('*')
     .single()
 
+  const translated = translateWriteError(error)
+  if (translated) throw translated
+  return data as Customer
+}
+
+// Lookups used by the "Ver cliente existente" affordance: after a
+// 23505 we fetch the colliding row so the form can link to it
+// without making the user hunt it down manually.
+export async function findCustomerByTelefono(telefono: string): Promise<Customer | null> {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('telefono', telefono)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function findCustomerByEmail(email: string): Promise<Customer | null> {
+  const normalized = email.trim().toLowerCase()
+  if (normalized === '') return null
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .ilike('email', normalized)
+    .is('deleted_at', null)
+    .maybeSingle()
   if (error) throw error
   return data
 }
