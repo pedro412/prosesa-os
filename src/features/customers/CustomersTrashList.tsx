@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Plus, Search, Trash, Trash2 } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,35 +14,29 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { type Customer, useCustomersPaged } from '@/lib/queries/customers'
-import { isAdmin, useCurrentProfile } from '@/lib/queries/profiles'
 
-import { CustomerDeleteDialog } from './CustomerDeleteDialog'
-import { CustomerFormDialog } from './CustomerFormDialog'
+import { CustomerRestoreDialog } from './CustomerRestoreDialog'
 import { customersMessages } from './messages'
 
 const PAGE_SIZE = 10
 
-export function CustomersList() {
+// Papelera view for soft-deleted customers (LIT-83). Admin-only via
+// the route guard in customers.papelera.tsx; RLS rejects the query
+// for ventas callers regardless.
+export function CustomersTrashList() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editing, setEditing] = useState<Customer | null>(null)
-  const [deleting, setDeleting] = useState<Customer | null>(null)
-
-  const profile = useCurrentProfile()
-  const admin = isAdmin(profile.data)
+  const [restoring, setRestoring] = useState<Customer | null>(null)
 
   const { data, isPending, isError } = useCustomersPaged({
     search,
     page,
     pageSize: PAGE_SIZE,
+    onlyDeleted: true,
   })
 
   const messages = customersMessages
 
-  // Reset to page 0 when the search input changes. A change handler
-  // could live next to the input, but centralizing it here keeps the
-  // pagination invariant obvious.
   function handleSearchChange(value: string) {
     setSearch(value)
     setPage(0)
@@ -56,26 +50,18 @@ export function CustomersList() {
   const isLastPage = page >= totalPages - 1
 
   return (
-    <div className="space-y-6" data-testid="customers-list">
+    <div className="space-y-6" data-testid="customers-trash-list">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{messages.page.title}</h1>
-          <p className="text-muted-foreground text-sm">{messages.page.description}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{messages.trash.title}</h1>
+          <p className="text-muted-foreground text-sm">{messages.trash.description}</p>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {admin && (
-            <Button asChild variant="outline" data-testid="customers-trash-link">
-              <Link to="/customers/papelera">
-                <Trash aria-hidden className="size-4" />
-                {messages.page.trashButton}
-              </Link>
-            </Button>
-          )}
-          <Button onClick={() => setCreateOpen(true)} data-testid="customer-create-button">
-            <Plus aria-hidden className="size-4" />
-            {messages.page.newButton}
-          </Button>
-        </div>
+        <Button asChild variant="outline" className="shrink-0">
+          <Link to="/customers" data-testid="customers-trash-back">
+            <ArrowLeft aria-hidden className="size-4" />
+            {messages.trash.backButton}
+          </Link>
+        </Button>
       </header>
 
       <div className="relative max-w-md">
@@ -89,7 +75,7 @@ export function CustomersList() {
           placeholder={messages.search.placeholder}
           aria-label={messages.search.ariaLabel}
           className="pl-9"
-          data-testid="customers-search"
+          data-testid="customers-trash-search"
         />
       </div>
 
@@ -113,7 +99,7 @@ export function CustomersList() {
       {!isPending && !isError && rows.length === 0 && (
         <Card>
           <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {search.trim().length > 0 ? messages.list.emptySearch : messages.list.empty}
+            {search.trim().length > 0 ? messages.trash.emptySearch : messages.trash.empty}
           </CardContent>
         </Card>
       )}
@@ -124,20 +110,18 @@ export function CustomersList() {
             <TableHeader>
               <TableRow>
                 <TableHead>{messages.columns.nombre}</TableHead>
-                <TableHead>{messages.columns.rfc}</TableHead>
                 <TableHead>{messages.columns.telefono}</TableHead>
                 <TableHead>{messages.columns.email}</TableHead>
+                <TableHead>{messages.trash.columnDeletedAt}</TableHead>
                 <TableHead className="sr-only">{messages.columns.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((customer) => (
-                <CustomerRow
+                <TrashedCustomerRow
                   key={customer.id}
                   customer={customer}
-                  admin={admin}
-                  onEdit={() => setEditing(customer)}
-                  onDelete={() => setDeleting(customer)}
+                  onRestore={() => setRestoring(customer)}
                 />
               ))}
             </TableBody>
@@ -147,7 +131,7 @@ export function CustomersList() {
 
       {!isPending && !isError && totalCount > 0 && (
         <div className="flex flex-col items-center justify-between gap-2 sm:flex-row">
-          <p className="text-muted-foreground text-sm" data-testid="customers-count">
+          <p className="text-muted-foreground text-sm" data-testid="customers-trash-count">
             {messages.list.resultCount(rows.length, totalCount)}
           </p>
           <div className="flex items-center gap-3">
@@ -159,7 +143,7 @@ export function CustomersList() {
               size="sm"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={isFirstPage}
-              data-testid="customers-prev"
+              data-testid="customers-trash-prev"
             >
               {messages.list.previous}
             </Button>
@@ -168,7 +152,7 @@ export function CustomersList() {
               size="sm"
               onClick={() => setPage((p) => (isLastPage ? p : p + 1))}
               disabled={isLastPage}
-              data-testid="customers-next"
+              data-testid="customers-trash-next"
             >
               {messages.list.next}
             </Button>
@@ -176,84 +160,51 @@ export function CustomersList() {
         </div>
       )}
 
-      <CustomerFormDialog
-        mode="create"
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onRequestEditExisting={(existing) => {
-          // User hit a duplicate on create — jump to the colliding
-          // row's edit dialog so they can update it instead of fighting
-          // the unique constraint.
-          setCreateOpen(false)
-          setEditing(existing)
-        }}
-      />
-
-      <CustomerFormDialog
-        mode="edit"
-        customer={editing}
-        open={editing !== null}
+      <CustomerRestoreDialog
+        customer={restoring}
+        open={restoring !== null}
         onOpenChange={(open) => {
-          if (!open) setEditing(null)
-        }}
-        onRequestEditExisting={(existing) => {
-          // Same collision UX when editing: swap the dialog contents
-          // to the actual owner of the conflicting field.
-          setEditing(existing)
-        }}
-      />
-
-      <CustomerDeleteDialog
-        customer={deleting}
-        open={deleting !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleting(null)
+          if (!open) setRestoring(null)
         }}
       />
     </div>
   )
 }
 
-interface CustomerRowProps {
+interface TrashedCustomerRowProps {
   customer: Customer
-  admin: boolean
-  onEdit: () => void
-  onDelete: () => void
+  onRestore: () => void
 }
 
-function CustomerRow({ customer, admin, onEdit, onDelete }: CustomerRowProps) {
-  const messages = customersMessages
+// Timezone-aware formatter per CLAUDE.md §4 rule 10. Kept inline —
+// we only format deleted_at here, no general date helper needed yet.
+const deletedAtFormatter = new Intl.DateTimeFormat('es-MX', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'America/Mexico_City',
+})
+
+function TrashedCustomerRow({ customer, onRestore }: TrashedCustomerRowProps) {
+  const deletedAt = customer.deleted_at
+    ? deletedAtFormatter.format(new Date(customer.deleted_at))
+    : '—'
 
   return (
-    <TableRow data-testid={`customer-row-${customer.id}`}>
+    <TableRow data-testid={`customer-trash-row-${customer.id}`}>
       <TableCell className="font-medium">{customer.nombre}</TableCell>
-      <TableCell className="text-muted-foreground font-mono text-xs">
-        {customer.rfc ?? '—'}
-      </TableCell>
-      <TableCell className="text-muted-foreground">{customer.telefono ?? '—'}</TableCell>
+      <TableCell className="text-muted-foreground">{customer.telefono}</TableCell>
       <TableCell className="text-muted-foreground">{customer.email ?? '—'}</TableCell>
+      <TableCell className="text-muted-foreground text-xs tabular-nums">{deletedAt}</TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEdit}
-            data-testid={`customer-edit-${customer.id}`}
-          >
-            {messages.actions.edit}
-          </Button>
-          {admin && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onDelete}
-              aria-label={messages.actions.delete}
-              data-testid={`customer-delete-${customer.id}`}
-            >
-              <Trash2 aria-hidden className="size-4" />
-            </Button>
-          )}
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRestore}
+          data-testid={`customer-restore-${customer.id}`}
+        >
+          <RotateCcw aria-hidden className="size-4" />
+          {customersMessages.trash.restoreButton}
+        </Button>
       </TableCell>
     </TableRow>
   )

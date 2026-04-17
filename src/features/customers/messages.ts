@@ -5,6 +5,30 @@ export const customersMessages = {
     title: 'Clientes',
     description: 'Registro compartido entre ambas razones sociales.',
     newButton: 'Nuevo cliente',
+    trashButton: 'Papelera',
+  },
+  trash: {
+    title: 'Papelera de clientes',
+    description:
+      'Clientes eliminados. Los registros permanecen en la base para no romper el histórico y pueden restablecerse aquí.',
+    backButton: 'Volver a clientes',
+    columnDeletedAt: 'Eliminado el',
+    empty: 'No hay clientes en la papelera.',
+    emptySearch: 'Sin resultados para la búsqueda.',
+    restoreButton: 'Restablecer',
+    restoreDialog: {
+      title: '¿Restablecer cliente?',
+      body: (nombre: string) => `El cliente "${nombre}" volverá a aparecer en la lista principal.`,
+      confirm: 'Restablecer',
+      cancel: 'Cancelar',
+    },
+    restoreSuccess: 'Cliente restablecido.',
+    restoreDuplicate: {
+      telefono:
+        'No se puede restablecer: ya existe un cliente activo con este teléfono. Abre la papelera para revisar duplicados.',
+      email:
+        'No se puede restablecer: ya existe un cliente activo con este correo. Abre la papelera para revisar duplicados.',
+    },
   },
   search: {
     placeholder: 'Buscar por nombre, RFC o teléfono',

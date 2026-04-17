@@ -1,7 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 
-import { CustomersList } from '@/features/customers/CustomersList'
-
+// Minimal layout wrapper. The two subroutes (index = active list,
+// papelera = admin-only trash) carry their own chrome — there's no
+// shared header or tabs to factor out yet, unlike /settings.
 export const Route = createFileRoute('/_app/customers')({
-  component: CustomersList,
+  component: CustomersLayout,
 })
+
+function CustomersLayout() {
+  return <Outlet />
+}
