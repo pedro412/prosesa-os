@@ -16,9 +16,13 @@ export type NewCustomer = Omit<
 export interface ListCustomersOptions {
   // Free-text match against nombre / rfc / telefono (ILIKE substring).
   search?: string
-  // Include soft-deleted rows. Admin-only in practice — RLS filters
-  // them out for non-admin callers regardless of this flag.
+  // Include soft-deleted rows alongside live ones. Admin-only in
+  // practice — RLS filters them out for non-admin callers regardless
+  // of this flag.
   includeDeleted?: boolean
+  // Papelera view: return only soft-deleted rows. Takes precedence
+  // over includeDeleted when true. Admin-only per RLS.
+  onlyDeleted?: boolean
 }
 
 export interface PagedCustomersOptions extends ListCustomersOptions {
@@ -53,6 +57,7 @@ export const customerKeys = {
       {
         search: opts.search?.trim() ?? '',
         includeDeleted: opts.includeDeleted ?? false,
+        onlyDeleted: opts.onlyDeleted ?? false,
         page: opts.page ?? 0,
         pageSize: opts.pageSize ?? DEFAULT_PAGE_SIZE,
       },
@@ -182,7 +187,9 @@ export async function listCustomersPaged(
     .order('nombre', { ascending: true })
     .range(from, to)
 
-  if (!opts.includeDeleted) {
+  if (opts.onlyDeleted) {
+    query = query.not('deleted_at', 'is', null)
+  } else if (!opts.includeDeleted) {
     query = query.is('deleted_at', null)
   }
 
@@ -210,6 +217,25 @@ export async function softDeleteCustomer(id: string): Promise<Customer> {
 
   if (error) throw error
   return data
+}
+
+// Restore a soft-deleted customer. If the phone/email now collide
+// with an active row (the unique partial indexes only see live rows),
+// the 23505 surfaces as DuplicateCustomerError — the UI turns that
+// into a "este contacto ya pertenece a otro cliente activo" message.
+// RLS requires admin for UPDATEs that touch soft-deleted rows, so
+// only admins can call this.
+export async function restoreCustomer(id: string): Promise<Customer> {
+  const { data, error } = await supabase
+    .from('customers')
+    .update({ deleted_at: null })
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  const translated = translateWriteError(error)
+  if (translated) throw translated
+  return data as Customer
 }
 
 // ============================================================================
@@ -270,6 +296,19 @@ export function useSoftDeleteCustomer() {
     mutationFn: softDeleteCustomer,
     onSuccess: (customer) => {
       queryClient.setQueryData(customerKeys.detail(customer.id), customer)
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
+    },
+  })
+}
+
+export function useRestoreCustomer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: restoreCustomer,
+    onSuccess: (customer) => {
+      queryClient.setQueryData(customerKeys.detail(customer.id), customer)
+      // Invalidate both active and papelera lists — the row just
+      // crossed from one to the other.
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
     },
   })
