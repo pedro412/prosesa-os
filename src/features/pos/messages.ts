@@ -150,4 +150,36 @@ export const posMessages = {
     error: 'No se pudo imprimir el ticket.',
     errorHint: 'Revisa la conexión en Ajustes > Impresora.',
   },
+  printer: {
+    unsupported: {
+      label: 'Sin WebUSB',
+      tooltip: 'Este navegador no soporta WebUSB. Usa Chrome, Edge u Opera para imprimir tickets.',
+    },
+    unauthorized: {
+      label: 'Sin impresora',
+      tooltip:
+        'Aún no autorizas una impresora. Haz clic aquí para abrir Ajustes > Impresora y solicitar acceso.',
+    },
+    disconnected: {
+      label: 'Desconectada',
+      tooltip:
+        'La impresora autorizada no está conectada. Revisa el cable USB o reautoriza en Ajustes > Impresora.',
+    },
+    printing: {
+      label: 'Imprimiendo…',
+      tooltip: 'Enviando el ticket a la impresora.',
+    },
+    error: {
+      label: 'Error al imprimir',
+      tooltip: (detail: string | null) =>
+        detail
+          ? `El último ticket falló: ${detail}. Haz clic para abrir Ajustes > Impresora.`
+          : 'El último ticket no se pudo imprimir. Haz clic para abrir Ajustes > Impresora.',
+    },
+    ready: {
+      label: 'Impresora lista',
+      tooltip: (device: string | null) =>
+        device ? `Conectada: ${device}. Lista para imprimir.` : 'Lista para imprimir.',
+    },
+  },
 } as const

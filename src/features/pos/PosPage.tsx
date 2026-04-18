@@ -27,6 +27,7 @@ import {
   posFormReducer,
   toCreateSalesNotePayload,
 } from './pos-form-state'
+import { PrinterStatusIndicator } from './PrinterStatusIndicator'
 import { TotalsPanel } from './TotalsPanel'
 
 // Snapshot of everything a just-created sale needs to render a ticket.
@@ -210,9 +211,12 @@ export function PosPage() {
 
   return (
     <div className="space-y-6" data-testid="pos-page">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{posMessages.page.title}</h1>
-        <p className="text-muted-foreground text-sm">{posMessages.page.description}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{posMessages.page.title}</h1>
+          <p className="text-muted-foreground text-sm">{posMessages.page.description}</p>
+        </div>
+        <PrinterStatusIndicator />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
