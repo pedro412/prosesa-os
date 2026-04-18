@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { Database } from '@/types/database'
 
@@ -199,5 +199,80 @@ export function useSalesNote(id: string | undefined) {
     queryFn: () => getSalesNote(id as string),
     enabled: !!id,
     staleTime: 30_000,
+  })
+}
+
+// ============================================================================
+// Write: createSalesNote (atomic via RPC — LIT-31)
+// ============================================================================
+
+// Payload shape for the `public.create_sales_note(payload jsonb)` RPC.
+// Mirrors what the server-side PL/pgSQL expects (see migration
+// 20260418130000_create_sales_note_rpc.sql). Using a hand-written shape
+// instead of the generated jsonb type gives us sharp compile-time
+// feedback at every call site.
+export interface CreateSalesNoteLineInput {
+  catalog_item_id: string | null
+  concept: string
+  dimensions: string | null
+  material: string | null
+  unit: string
+  quantity: number
+  unit_price: number
+  discount_type: LineDiscountType
+  discount_value: number
+}
+
+export interface CreateSalesNoteInput {
+  company_id: string
+  customer_id: string | null
+  notes: string | null
+  requires_invoice: boolean
+  lines: CreateSalesNoteLineInput[]
+}
+
+export interface CreateSalesNoteResult {
+  id: string
+  folio: string
+}
+
+// Wraps the SECURITY DEFINER `create_sales_note` RPC. Inserts the
+// header + lines in a single transaction on the server; returns the
+// created note's (id, folio) so the UI can toast the new folio or
+// navigate to the detail view.
+//
+// Why an RPC over two PostgREST calls: one network round-trip, DB
+// transaction atomicity (no orphaned header if the lines insert
+// fails), and a typed return shape without the `folio: string` Insert
+// quirk that the BEFORE trigger resolves at write time.
+export async function createSalesNote(input: CreateSalesNoteInput): Promise<CreateSalesNoteResult> {
+  // RPC args cast: Supabase's generated type for a function with a
+  // `jsonb` parameter is `Json`, but our payload is a concrete shape
+  // that always round-trips through JSON.stringify cleanly.
+  const { data, error } = await supabase.rpc('create_sales_note', {
+    payload:
+      input as unknown as Database['public']['Functions']['create_sales_note']['Args']['payload'],
+  })
+
+  if (error) throw error
+  // The PL/pgSQL `returns table(id uuid, folio text)` surfaces to the
+  // client as an array with one row.
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row || typeof row !== 'object' || !('id' in row) || !('folio' in row)) {
+    throw new Error('create_sales_note: unexpected empty response')
+  }
+  return { id: String(row.id), folio: String(row.folio) }
+}
+
+// TanStack Query mutation: invalidates the sales-notes lists on success
+// so the history view (once it ships in LIT-35) picks up the new row
+// without a manual refetch.
+export function useCreateSalesNote() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createSalesNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: salesNoteKeys.lists() })
+    },
   })
 }
