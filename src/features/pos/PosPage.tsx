@@ -7,7 +7,8 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { type Company, useCompanies } from '@/lib/queries/companies'
 import { type Customer } from '@/lib/queries/customers'
-import { useCreateSalesNote } from '@/lib/queries/sales-notes'
+import { type CreateSalesNotePaymentInput, useCreateSalesNote } from '@/lib/queries/sales-notes'
+import { computeTotals } from '@/lib/tax'
 
 import { CatalogSearchPanel } from './CatalogSearchPanel'
 import { CompanySelect } from './CompanySelect'
@@ -15,6 +16,7 @@ import { CustomerSelect } from './CustomerSelect'
 import { FreeFormLineDialog } from './FreeFormLineDialog'
 import { LineItemsTable } from './LineItemsTable'
 import { posMessages } from './messages'
+import { PaymentDialog } from './PaymentDialog'
 import {
   canSubmit,
   initialPosFormState,
@@ -29,6 +31,7 @@ import { TotalsPanel } from './TotalsPanel'
 export function PosPage() {
   const [state, dispatch] = useReducer(posFormReducer, undefined, initialPosFormState)
   const [freeFormOpen, setFreeFormOpen] = useState(false)
+  const [paymentOpen, setPaymentOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   const createMutation = useCreateSalesNote()
@@ -43,12 +46,29 @@ export function PosPage() {
     [companies, state.companyId]
   )
 
+  // Computed once so the totals panel and the payment dialog read from
+  // the same source of truth (no drift between "total to cobrar" and
+  // "total being paid").
+  const totals = useMemo(() => {
+    if (!selectedCompany) return null
+    return computeTotals({
+      lines: state.lines.map((line) => ({
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        discountType: line.discountType,
+        discountValue: line.discountValue,
+      })),
+      ivaRate: Number(selectedCompany.iva_rate),
+      ivaInclusive: selectedCompany.iva_inclusive,
+    })
+  }, [selectedCompany, state.lines])
+
   const submittable = canSubmit(state) && !createMutation.isPending
 
-  async function handleSubmit() {
+  async function handleConfirmPayments(payments: CreateSalesNotePaymentInput[]) {
     if (!submittable) return
     try {
-      const payload = toCreateSalesNotePayload(state)
+      const payload = { ...toCreateSalesNotePayload(state), payments }
       const result = await createMutation.mutateAsync(payload)
       toast.success(posMessages.submit.success(result.folio), {
         description: posMessages.submit.successHint,
@@ -56,14 +76,23 @@ export function PosPage() {
       // Keep the company, drop everything else.
       dispatch({ type: 'reset' })
       setSelectedCustomer(null)
+      setPaymentOpen(false)
+      // TODO(LIT-34/LIT-35): trigger thermal ticket print (M3-7) or
+      // redirect to the note detail (M3-8) once those land. For now
+      // the operator stays in POS with the success toast.
     } catch (err) {
       // Surface server-side messages we can recognize; fall back to
-      // the generic toast otherwise.
+      // the generic toast otherwise. Keep the dialog open on error so
+      // the operator can correct and retry.
       const message = err instanceof Error ? err.message : ''
       if (message.includes('not authenticated')) {
         toast.error(posMessages.submit.notAuthenticated)
       } else if (message.includes('unknown or inactive company')) {
         toast.error(posMessages.submit.companyInactive)
+      } else if (message.includes('do not cover total')) {
+        // Defensive: the dialog already blocks this path client-side,
+        // but the server is the source of truth.
+        toast.error(posMessages.payments.errors.totalNotCovered)
       } else {
         toast.error(posMessages.submit.genericError)
       }
@@ -168,7 +197,7 @@ export function PosPage() {
             className="w-full"
             size="lg"
             disabled={!submittable}
-            onClick={handleSubmit}
+            onClick={() => setPaymentOpen(true)}
             data-testid="pos-submit"
           >
             {createMutation.isPending ? posMessages.submit.sending : posMessages.submit.cta}
@@ -188,6 +217,14 @@ export function PosPage() {
         open={freeFormOpen}
         onOpenChange={setFreeFormOpen}
         onAdd={(line) => dispatch({ type: 'addFreeFormLine', line })}
+      />
+
+      <PaymentDialog
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        total={totals?.total ?? 0}
+        submitting={createMutation.isPending}
+        onConfirm={handleConfirmPayments}
       />
     </div>
   )
