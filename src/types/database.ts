@@ -545,9 +545,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _sales_note_line_total: {
+        Args: {
+          p_discount_type: string
+          p_discount_value: number
+          p_quantity: number
+          p_unit_price: number
+        }
+        Returns: number
+      }
       assert_all_tables_have_rls: {
         Args: { allowlist?: string[] }
         Returns: undefined
+      }
+      create_sales_note: {
+        Args: { payload: Json }
+        Returns: {
+          folio: string
+          id: string
+        }[]
       }
       current_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }

@@ -1,8 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { PlaceholderPage } from '@/components/layout/PlaceholderPage'
-import { layoutMessages } from '@/components/layout/messages'
+import { PosPage } from '@/features/pos/PosPage'
 
 export const Route = createFileRoute('/_app/pos')({
-  component: () => <PlaceholderPage title={layoutMessages.nav.pos} testId="page-pos" />,
+  component: PosPage,
 })
