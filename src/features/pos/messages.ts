@@ -1,6 +1,8 @@
 // UI copy for the POS counter-mode screen. Spanish (Mexico).
 // Kept in one file per CLAUDE.md §5.
 
+import { CARD_TYPE_LABELS, PAYMENT_METHOD_LABELS } from '@/lib/queries/payments'
+
 export const posMessages = {
   page: {
     title: 'Punto de venta',
@@ -112,15 +114,10 @@ export const posMessages = {
     removeRow: 'Quitar método',
     methodPlaceholder: 'Selecciona un método',
     cardTypePlaceholder: 'Crédito o débito',
-    methods: {
-      efectivo: 'Efectivo',
-      transferencia: 'Transferencia',
-      tarjeta: 'Tarjeta',
-    },
-    cardTypes: {
-      credito: 'Crédito',
-      debito: 'Débito',
-    },
+    // Shared with the thermal-ticket builder so the two surfaces can't
+    // drift. Edit the maps in `@/lib/queries/payments`.
+    methods: PAYMENT_METHOD_LABELS,
+    cardTypes: CARD_TYPE_LABELS,
     cashTendered: {
       label: 'Efectivo recibido del cliente',
       placeholder: 'Opcional — para calcular el cambio',
@@ -148,5 +145,9 @@ export const posMessages = {
   },
   invoice: {
     label: 'Requiere factura',
+  },
+  print: {
+    error: 'No se pudo imprimir el ticket.',
+    errorHint: 'Revisa la conexión en Ajustes > Impresora.',
   },
 } as const
