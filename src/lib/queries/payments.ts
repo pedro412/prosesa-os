@@ -17,6 +17,11 @@ export type PaymentUpdate = Database['public']['Tables']['payments']['Update']
 // can switch exhaustively without casting.
 export type PaymentMethod = 'efectivo' | 'transferencia' | 'tarjeta'
 
+// Kept in sync with payments_card_type_check (LIT-33). Only populated
+// when method='tarjeta'; null for efectivo / transferencia. Carried
+// into corte de caja so bookkeeping can split crédito vs débito.
+export type CardType = 'credito' | 'debito'
+
 // ============================================================================
 // Query keys
 // ============================================================================

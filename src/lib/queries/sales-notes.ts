@@ -4,6 +4,8 @@ import type { Database } from '@/types/database'
 
 import { supabase } from '../supabase'
 
+import { type CardType, paymentKeys, type PaymentMethod } from './payments'
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -223,12 +225,26 @@ export interface CreateSalesNoteLineInput {
   discount_value: number
 }
 
+// One payment row the POS captures inline with the note (LIT-33).
+// Shape mirrors what the `create_sales_note` RPC validates before
+// inserting into `public.payments`: card_type is required when
+// method='tarjeta' and must be null otherwise.
+export interface CreateSalesNotePaymentInput {
+  method: PaymentMethod
+  card_type: CardType | null
+  amount: number
+}
+
 export interface CreateSalesNoteInput {
   company_id: string
   customer_id: string | null
   notes: string | null
   requires_invoice: boolean
   lines: CreateSalesNoteLineInput[]
+  // Optional so the LIT-31 call sites that omit payments keep landing
+  // the note in status='pendiente'. LIT-33 supplies a non-empty array
+  // for counter-mode sales so the note lands 'pagada' atomically.
+  payments?: CreateSalesNotePaymentInput[]
 }
 
 export interface CreateSalesNoteResult {
@@ -266,13 +282,15 @@ export async function createSalesNote(input: CreateSalesNoteInput): Promise<Crea
 
 // TanStack Query mutation: invalidates the sales-notes lists on success
 // so the history view (once it ships in LIT-35) picks up the new row
-// without a manual refetch.
+// without a manual refetch. Also busts any payment list caches so the
+// detail view (LIT-35) sees the inline payments from the dialog.
 export function useCreateSalesNote() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createSalesNote,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: salesNoteKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: paymentKeys.all })
     },
   })
 }

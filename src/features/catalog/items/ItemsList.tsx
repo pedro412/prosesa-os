@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { formatMXN } from '@/lib/format'
 import {
   Select,
   SelectContent,
@@ -43,11 +44,6 @@ const ALL_CATEGORIES = '__all__'
 const messages = catalogMessages.items
 const unitMessages = catalogMessages.units
 const pricingModeMessages = catalogMessages.pricingMode
-
-const priceFormatter = new Intl.NumberFormat('es-MX', {
-  style: 'currency',
-  currency: 'MXN',
-})
 
 interface ItemsListProps {
   canEdit: boolean
@@ -304,7 +300,7 @@ function ItemRow({ item, category, canEdit, onEdit, onDelete }: ItemRowProps) {
       <TableCell className="text-muted-foreground">{unitMessages[unit]}</TableCell>
       <TableCell className="text-muted-foreground">{pricingModeMessages[pricingMode]}</TableCell>
       <TableCell className="text-right tabular-nums">
-        {pricingMode === 'variable' ? '—' : priceFormatter.format(Number(item.price))}
+        {pricingMode === 'variable' ? '—' : formatMXN(Number(item.price))}
       </TableCell>
       <TableCell className="text-center">
         {canEdit ? (

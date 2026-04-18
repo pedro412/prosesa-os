@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { formatMXN } from '@/lib/format'
 import { type CatalogItem, useItems } from '@/lib/queries/catalog'
 import { cn } from '@/lib/utils'
 
@@ -109,12 +110,7 @@ export function CatalogSearchPanel({ disabled, onAdd }: CatalogSearchPanelProps)
                 </div>
               </div>
               <div className="tabular-nums">
-                {item.pricing_mode === 'variable'
-                  ? '—'
-                  : new Intl.NumberFormat('es-MX', {
-                      style: 'currency',
-                      currency: 'MXN',
-                    }).format(Number(item.price))}
+                {item.pricing_mode === 'variable' ? '—' : formatMXN(Number(item.price))}
               </div>
             </button>
           ))}

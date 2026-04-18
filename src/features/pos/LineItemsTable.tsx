@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { formatMXN } from '@/lib/format'
 import { computeLineTotal, type LineDiscountType } from '@/lib/tax'
 
 import { posMessages } from './messages'
@@ -28,11 +29,6 @@ interface LineItemsTableProps {
   onRemove: (id: string) => void
 }
 
-const currency = new Intl.NumberFormat('es-MX', {
-  style: 'currency',
-  currency: 'MXN',
-})
-
 // Parses a loosely-typed input into a safe number. Empty / invalid →
 // 0 so the reducer's `isLineValid` can flag it, rather than letting
 // NaN propagate through `computeLineTotal`.
@@ -40,12 +36,6 @@ function parseNumber(raw: string): number {
   if (raw.trim() === '') return 0
   const n = Number(raw)
   return Number.isFinite(n) ? n : 0
-}
-
-// Shows `value` right-padded so currency columns line up even across
-// locale-specific grouping separators. `tabular-nums` carries the rest.
-function formatMoney(n: number): string {
-  return currency.format(n)
 }
 
 export function LineItemsTable({ lines, onUpdate, onRemove }: LineItemsTableProps) {
@@ -165,7 +155,7 @@ export function LineItemsTable({ lines, onUpdate, onRemove }: LineItemsTableProp
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{formatMoney(lineTotal)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatMXN(lineTotal)}</TableCell>
                 <TableCell>
                   <Button
                     type="button"
