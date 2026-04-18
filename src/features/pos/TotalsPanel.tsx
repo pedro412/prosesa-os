@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatMXN } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { computeTotals, formatIvaRate } from '@/lib/tax'
 
@@ -10,17 +11,6 @@ interface TotalsPanelProps {
   ivaRate: number | null
   ivaInclusive: boolean | null
   className?: string
-}
-
-// Currency formatter locked to MXN — the project is single-currency per
-// CLAUDE.md §4 rule 9. Created once at module scope; cheap.
-const currency = new Intl.NumberFormat('es-MX', {
-  style: 'currency',
-  currency: 'MXN',
-})
-
-function formatMoney(n: number): string {
-  return currency.format(n)
 }
 
 // Totals panel. Always visible; shows placeholders until a company is
@@ -56,14 +46,14 @@ export function TotalsPanel({ lines, ivaRate, ivaInclusive, className }: TotalsP
       <CardContent className="space-y-2 text-sm">
         <Row
           label={posMessages.totals.subtotal}
-          value={totals ? formatMoney(totals.subtotal) : posMessages.totals.empty}
+          value={totals ? formatMXN(totals.subtotal) : posMessages.totals.empty}
           testId="pos-totals-subtotal"
         />
         <Row
           label={
             hasCompany ? posMessages.totals.ivaLabel(ratePct) : posMessages.totals.ivaLabel('—')
           }
-          value={totals ? formatMoney(totals.iva) : posMessages.totals.empty}
+          value={totals ? formatMXN(totals.iva) : posMessages.totals.empty}
           testId="pos-totals-iva"
         />
         <div className="border-t pt-2">
@@ -71,7 +61,7 @@ export function TotalsPanel({ lines, ivaRate, ivaInclusive, className }: TotalsP
             label={<span className="font-semibold">{posMessages.totals.total}</span>}
             value={
               <span className="text-lg font-semibold">
-                {totals ? formatMoney(totals.total) : posMessages.totals.empty}
+                {totals ? formatMXN(totals.total) : posMessages.totals.empty}
               </span>
             }
             testId="pos-totals-total"
