@@ -9,6 +9,7 @@ export const settingsMessages = {
   tabs: {
     companies: 'Empresas',
     users: 'Usuarios',
+    printer: 'Impresora',
   },
   companies: {
     sectionTitle: 'Razones sociales',
@@ -64,5 +65,49 @@ export const settingsMessages = {
   toast: {
     success: 'Empresa actualizada.',
     error: 'No se pudieron guardar los cambios.',
+  },
+  printer: {
+    sectionTitle: 'Impresora térmica',
+    sectionDescription:
+      'Configura la impresora de tickets para este equipo. La autorización se guarda por navegador; si cambias de computadora tendrás que repetirla aquí.',
+    unsupported: 'Tu navegador no soporta WebUSB. Usa Chrome, Edge u Opera para imprimir tickets.',
+    status: {
+      label: 'Estado',
+      idle: 'Sin imprimir todavía',
+      printing: 'Enviando al impresor…',
+      ok: 'Último ticket enviado correctamente.',
+      error: 'Hubo un problema con la última impresión.',
+    },
+    device: {
+      label: 'Dispositivo autorizado',
+      none: 'Ninguno — solicita acceso para continuar.',
+      authorize: 'Solicitar acceso a impresora',
+      reauthorize: 'Cambiar impresora',
+      authorizeHint: 'Se abrirá una ventana del navegador donde debes elegir tu impresora USB.',
+      authorized: (name: string) => `Autorizada: ${name}`,
+      authorizeError: 'No se autorizó ninguna impresora.',
+    },
+    paper: {
+      label: 'Ancho de papel',
+      option80: '80 mm (42 columnas)',
+      option58: '58 mm (32 columnas)',
+      hint: 'La mayoría de los tickets de Prosesa usan 80 mm.',
+    },
+    test: {
+      button: 'Imprimir ticket de prueba',
+      hint: 'Envía un ticket de ejemplo a la impresora autorizada.',
+      sending: 'Imprimiendo…',
+      success: 'Ticket de prueba enviado.',
+      error: 'No se pudo imprimir la prueba.',
+    },
+    preview: {
+      label: 'Previsualización',
+      hint: 'Así se verá el ancho del papel. Ajústalo si los bordes quedan cortados.',
+    },
+    companyNotice: {
+      label: 'Empresa para la prueba',
+      hint: 'El ticket de prueba se imprime con los datos fiscales de la empresa activa en POS.',
+      missing: 'Configura al menos una empresa activa para poder imprimir la prueba.',
+    },
   },
 } as const

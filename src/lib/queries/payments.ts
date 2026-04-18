@@ -22,6 +22,12 @@ export type PaymentMethod = 'efectivo' | 'transferencia' | 'tarjeta'
 // into corte de caja so bookkeeping can split crédito vs débito.
 export type CardType = 'credito' | 'debito'
 
+// Spanish labels live in `@/lib/payment-labels` so the thermal-ticket
+// builder (pure, no Supabase dep) can import them without pulling in
+// the env-validated Supabase client. Re-export here so POS code that
+// already imports from `@/lib/queries/payments` keeps working.
+export { CARD_TYPE_LABELS, PAYMENT_METHOD_LABELS } from '../payment-labels'
+
 // ============================================================================
 // Query keys
 // ============================================================================

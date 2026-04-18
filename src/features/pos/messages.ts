@@ -1,6 +1,8 @@
 // UI copy for the POS counter-mode screen. Spanish (Mexico).
 // Kept in one file per CLAUDE.md §5.
 
+import { CARD_TYPE_LABELS, PAYMENT_METHOD_LABELS } from '@/lib/queries/payments'
+
 export const posMessages = {
   page: {
     title: 'Punto de venta',
@@ -112,15 +114,10 @@ export const posMessages = {
     removeRow: 'Quitar método',
     methodPlaceholder: 'Selecciona un método',
     cardTypePlaceholder: 'Crédito o débito',
-    methods: {
-      efectivo: 'Efectivo',
-      transferencia: 'Transferencia',
-      tarjeta: 'Tarjeta',
-    },
-    cardTypes: {
-      credito: 'Crédito',
-      debito: 'Débito',
-    },
+    // Shared with the thermal-ticket builder so the two surfaces can't
+    // drift. Edit the maps in `@/lib/queries/payments`.
+    methods: PAYMENT_METHOD_LABELS,
+    cardTypes: CARD_TYPE_LABELS,
     cashTendered: {
       label: 'Efectivo recibido del cliente',
       placeholder: 'Opcional — para calcular el cambio',
@@ -148,5 +145,41 @@ export const posMessages = {
   },
   invoice: {
     label: 'Requiere factura',
+  },
+  print: {
+    error: 'No se pudo imprimir el ticket.',
+    errorHint: 'Revisa la conexión en Ajustes > Impresora.',
+  },
+  printer: {
+    unsupported: {
+      label: 'Sin WebUSB',
+      tooltip: 'Este navegador no soporta WebUSB. Usa Chrome, Edge u Opera para imprimir tickets.',
+    },
+    unauthorized: {
+      label: 'Sin impresora',
+      tooltip:
+        'Aún no autorizas una impresora. Haz clic aquí para abrir Ajustes > Impresora y solicitar acceso.',
+    },
+    disconnected: {
+      label: 'Desconectada',
+      tooltip:
+        'La impresora autorizada no está conectada. Revisa el cable USB o reautoriza en Ajustes > Impresora.',
+    },
+    printing: {
+      label: 'Imprimiendo…',
+      tooltip: 'Enviando el ticket a la impresora.',
+    },
+    error: {
+      label: 'Error al imprimir',
+      tooltip: (detail: string | null) =>
+        detail
+          ? `El último ticket falló: ${detail}. Haz clic para abrir Ajustes > Impresora.`
+          : 'El último ticket no se pudo imprimir. Haz clic para abrir Ajustes > Impresora.',
+    },
+    ready: {
+      label: 'Impresora lista',
+      tooltip: (device: string | null) =>
+        device ? `Conectada: ${device}. Lista para imprimir.` : 'Lista para imprimir.',
+    },
   },
 } as const
