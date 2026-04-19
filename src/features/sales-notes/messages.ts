@@ -84,6 +84,14 @@ export const salesNotesMessages = {
       cancelledAt: 'Cancelada el',
       cancelledReason: 'Motivo de cancelación',
       notes: 'Notas internas',
+      requiresInvoice: 'Factura',
+    },
+    values: {
+      yes: 'Sí',
+      no: 'No',
+    },
+    badges: {
+      requiresInvoice: 'Requiere factura',
     },
     empty: {
       lines: 'Sin partidas.',
@@ -98,6 +106,7 @@ export const salesNotesMessages = {
       printDetailed: 'Imprimir nota detallada',
       printDetailedComingSoon: 'Próximamente (M4-8)',
       cancel: 'Cancelar nota',
+      editCustomerAria: 'Editar datos del cliente',
     },
     toasts: {
       paymentSuccess: 'Pago registrado.',
