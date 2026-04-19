@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+import { PageContainer } from '@/components/layout/PageContainer'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -9,7 +10,7 @@ export const Route = createFileRoute('/_app/')({
 
 function HomeRoute() {
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <PageContainer className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Inicio</h1>
@@ -32,6 +33,6 @@ function HomeRoute() {
           Si encuentras algo raro, usa el botón de reporte flotante abajo a la derecha.
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   )
 }

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
+import { PageContainer } from '@/components/layout/PageContainer'
 import { SalesNotesList } from '@/features/sales-notes/SalesNotesList'
 
 const salesNoteStatusSchema = z.enum(['pagada', 'pendiente', 'abonada', 'cancelada'])
@@ -25,5 +26,13 @@ const salesNotesSearchSchema = z.object({
 
 export const Route = createFileRoute('/_app/sales-notes')({
   validateSearch: salesNotesSearchSchema,
-  component: SalesNotesList,
+  component: SalesNotesRoute,
 })
+
+function SalesNotesRoute() {
+  return (
+    <PageContainer>
+      <SalesNotesList />
+    </PageContainer>
+  )
+}
