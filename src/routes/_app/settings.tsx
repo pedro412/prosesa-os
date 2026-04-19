@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 
 import { AdminRoute } from '@/components/guards'
+import { PageContainer } from '@/components/layout/PageContainer'
 import { settingsMessages } from '@/features/settings/messages'
 
 export const Route = createFileRoute('/_app/settings')({
@@ -11,26 +12,28 @@ export const Route = createFileRoute('/_app/settings')({
 function SettingsLayout() {
   return (
     <AdminRoute>
-      <div className="space-y-6" data-testid="page-settings">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{settingsMessages.page.title}</h1>
-          <p className="text-muted-foreground text-sm">{settingsMessages.page.description}</p>
-        </header>
-        <nav className="border-b" aria-label={settingsMessages.page.title}>
-          <ul className="flex gap-1">
-            <SettingsTab to="/settings/companies" testId="settings-tab-companies">
-              {settingsMessages.tabs.companies}
-            </SettingsTab>
-            <SettingsTab to="/settings/users" testId="settings-tab-users">
-              {settingsMessages.tabs.users}
-            </SettingsTab>
-            <SettingsTab to="/settings/printer" testId="settings-tab-printer">
-              {settingsMessages.tabs.printer}
-            </SettingsTab>
-          </ul>
-        </nav>
-        <Outlet />
-      </div>
+      <PageContainer>
+        <div className="space-y-6" data-testid="page-settings">
+          <header className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">{settingsMessages.page.title}</h1>
+            <p className="text-muted-foreground text-sm">{settingsMessages.page.description}</p>
+          </header>
+          <nav className="border-b" aria-label={settingsMessages.page.title}>
+            <ul className="flex gap-1">
+              <SettingsTab to="/settings/companies" testId="settings-tab-companies">
+                {settingsMessages.tabs.companies}
+              </SettingsTab>
+              <SettingsTab to="/settings/users" testId="settings-tab-users">
+                {settingsMessages.tabs.users}
+              </SettingsTab>
+              <SettingsTab to="/settings/printer" testId="settings-tab-printer">
+                {settingsMessages.tabs.printer}
+              </SettingsTab>
+            </ul>
+          </nav>
+          <Outlet />
+        </div>
+      </PageContainer>
     </AdminRoute>
   )
 }
