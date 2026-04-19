@@ -2,9 +2,15 @@ import { useMemo } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { Eye, Plus, Search } from 'lucide-react'
 
+import {
+  ListEmptyCard,
+  ListErrorCard,
+  ListLoadingCard,
+  ListPagination,
+} from '@/components/layout/list-primitives'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -142,8 +148,6 @@ export function SalesNotesList() {
   const totalCount = data?.totalCount ?? 0
   const page = search.page ?? 0
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
-  const currentPageNumber = page + 1
-  const isFirstPage = page === 0
   const isLastPage = page >= totalPages - 1
 
   // Memo off data.rows directly so the empty-fallback doesn't
@@ -316,29 +320,14 @@ export function SalesNotesList() {
         </CardContent>
       </Card>
 
-      {isPending && (
-        <Card>
-          <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {messages.list.loading}
-          </CardContent>
-        </Card>
-      )}
+      {isPending && <ListLoadingCard skeleton={{ rows: PAGE_SIZE, columns: 7 }} />}
 
-      {isError && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{messages.list.loadError}</CardTitle>
-            <CardDescription>{messages.list.loadError}</CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+      {isError && <ListErrorCard title={messages.list.loadError} />}
 
       {!isPending && !isError && rows.length === 0 && (
-        <Card>
-          <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {filtersApplied ? messages.list.emptyFiltered : messages.list.empty}
-          </CardContent>
-        </Card>
+        <ListEmptyCard
+          message={filtersApplied ? messages.list.emptyFiltered : messages.list.empty}
+        />
       )}
 
       {!isPending && !isError && rows.length > 0 && (
@@ -375,34 +364,25 @@ export function SalesNotesList() {
       )}
 
       {!isPending && !isError && totalCount > 0 && (
-        <div className="flex flex-col items-center justify-between gap-2 sm:flex-row">
-          <p className="text-muted-foreground text-sm" data-testid="sales-notes-count">
-            {messages.list.resultCount(rows.length, totalCount)}
-          </p>
-          <div className="flex items-center gap-3">
-            <p className="text-muted-foreground text-sm tabular-nums">
-              {messages.list.pageOf(currentPageNumber, totalPages)}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => updatePage(Math.max(0, page - 1))}
-              disabled={isFirstPage}
-              data-testid="sales-notes-prev"
-            >
-              {messages.list.previous}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => updatePage(isLastPage ? page : page + 1)}
-              disabled={isLastPage}
-              data-testid="sales-notes-next"
-            >
-              {messages.list.next}
-            </Button>
-          </div>
-        </div>
+        <ListPagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          shownCount={rows.length}
+          onPrev={() => updatePage(Math.max(0, page - 1))}
+          onNext={() => updatePage(isLastPage ? page : page + 1)}
+          messages={{
+            resultCount: messages.list.resultCount,
+            pageOf: messages.list.pageOf,
+            previous: messages.list.previous,
+            next: messages.list.next,
+          }}
+          testIds={{
+            count: 'sales-notes-count',
+            prev: 'sales-notes-prev',
+            next: 'sales-notes-next',
+          }}
+        />
       )}
 
       <SalesNoteDetailDrawer

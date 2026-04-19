@@ -2,8 +2,14 @@ import { useState } from 'react'
 import { Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import {
+  ListEmptyCard,
+  ListErrorCard,
+  ListLoadingCard,
+  ListPagination,
+} from '@/components/layout/list-primitives'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatMXN } from '@/lib/format'
@@ -88,9 +94,6 @@ export function ItemsList({ canEdit }: ItemsListProps) {
   const totalCount = data?.totalCount ?? 0
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const rows = data?.rows ?? []
-  const currentPageNumber = page + 1
-  const isFirstPage = page === 0
-  const isLastPage = page >= totalPages - 1
 
   const categories = categoriesQuery.data ?? []
   const categoryById = new Map(categories.map((c) => [c.id, c]))
@@ -156,31 +159,20 @@ export function ItemsList({ canEdit }: ItemsListProps) {
         </div>
       </div>
 
-      {isPending && (
-        <Card>
-          <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {messages.list.loading}
-          </CardContent>
-        </Card>
-      )}
+      {isPending && <ListLoadingCard skeleton={{ rows: PAGE_SIZE, columns: canEdit ? 7 : 6 }} />}
 
       {isError && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{messages.list.loadError}</CardTitle>
-            <CardDescription>{messages.toast.genericError}</CardDescription>
-          </CardHeader>
-        </Card>
+        <ListErrorCard title={messages.list.loadError} description={messages.toast.genericError} />
       )}
 
       {!isPending && !isError && rows.length === 0 && (
-        <Card>
-          <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {search.trim().length > 0 || categoryId !== ALL_CATEGORIES
+        <ListEmptyCard
+          message={
+            search.trim().length > 0 || categoryId !== ALL_CATEGORIES
               ? messages.list.emptySearch
-              : messages.list.empty}
-          </CardContent>
-        </Card>
+              : messages.list.empty
+          }
+        />
       )}
 
       {!isPending && !isError && rows.length > 0 && (
@@ -214,34 +206,22 @@ export function ItemsList({ canEdit }: ItemsListProps) {
       )}
 
       {!isPending && !isError && totalCount > 0 && (
-        <div className="flex flex-col items-center justify-between gap-2 sm:flex-row">
-          <p className="text-muted-foreground text-sm" data-testid="items-count">
-            {messages.list.resultCount(rows.length, totalCount)}
-          </p>
-          <div className="flex items-center gap-3">
-            <p className="text-muted-foreground text-sm tabular-nums">
-              {messages.list.pageOf(currentPageNumber, totalPages)}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={isFirstPage || isFetching}
-              data-testid="items-prev"
-            >
-              {messages.list.previous}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={isLastPage || isFetching}
-              data-testid="items-next"
-            >
-              {messages.list.next}
-            </Button>
-          </div>
-        </div>
+        <ListPagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          shownCount={rows.length}
+          onPrev={() => setPage((p) => Math.max(0, p - 1))}
+          onNext={() => setPage((p) => p + 1)}
+          disabled={isFetching}
+          messages={{
+            resultCount: messages.list.resultCount,
+            pageOf: messages.list.pageOf,
+            previous: messages.list.previous,
+            next: messages.list.next,
+          }}
+          testIds={{ count: 'items-count', prev: 'items-prev', next: 'items-next' }}
+        />
       )}
 
       {canEdit && (
