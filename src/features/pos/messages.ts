@@ -143,6 +143,20 @@ export const posMessages = {
     label: 'Notas',
     placeholder: 'Observaciones internas para esta venta (opcional).',
   },
+  draft: {
+    restored: 'Venta restaurada.',
+    drifted: 'Se restauró tu venta; algunos datos ya no están disponibles.',
+    discard: {
+      trigger: 'Descartar borrador',
+      triggerAria: 'Descartar borrador de venta',
+      title: '¿Descartar el borrador?',
+      description:
+        'Se perderán los datos capturados en esta venta. Esta acción no se puede deshacer.',
+      confirm: 'Descartar',
+      cancel: 'Cancelar',
+      success: 'Borrador descartado.',
+    },
+  },
   invoice: {
     label: 'Requiere factura',
   },

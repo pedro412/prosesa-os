@@ -237,3 +237,69 @@ export function isLineValid(line: PosLine): boolean {
 // Re-exported for convenience so PosPage doesn't need two imports to
 // identify the catalog units allowed by the DB CHECK.
 export type PosUnit = CatalogUnit
+
+// ============================================================================
+// Draft persistence helpers (LIT-87)
+// ============================================================================
+
+// A draft is "empty" when it carries no user-meaningful data. Note
+// that `companyId` is intentionally excluded: after Cobrar the reducer
+// resets everything except the company (pos-form-state.ts `reset`
+// case), and we don't want that lingering companyId to keep the draft
+// in storage or trigger a "Venta restaurada" toast on the next mount.
+// LIT-86's `pos-preferences.lastCompanyId` handles the sticky default
+// for the empty-draft case.
+export function isDraftEmpty(state: PosFormState): boolean {
+  return (
+    state.lines.length === 0 &&
+    state.customerId === null &&
+    state.notes.trim() === '' &&
+    state.requiresInvoice === false
+  )
+}
+
+export interface SanitizeDraftContext {
+  // Active company ids (filtered to `is_active` only — we don't want
+  // to resurrect a deactivated razón social).
+  activeCompanyIds: Set<string>
+  // Active catalog item ids. Lines with a stale `catalogItemId` have
+  // the FK nulled but keep their concept/price snapshot so the
+  // operator's work isn't lost.
+  activeCatalogItemIds: Set<string>
+  // True unless the persisted `customerId` was looked up and returned
+  // no row. Callers pass `true` when `state.customerId` is null or
+  // while the fetch is still pending — drop only when we're sure.
+  customerValid: boolean
+}
+
+export function sanitizeDraft(
+  state: PosFormState,
+  ctx: SanitizeDraftContext
+): { state: PosFormState; drifted: boolean } {
+  let drifted = false
+
+  let companyId = state.companyId
+  if (companyId !== null && !ctx.activeCompanyIds.has(companyId)) {
+    companyId = null
+    drifted = true
+  }
+
+  let customerId = state.customerId
+  if (customerId !== null && !ctx.customerValid) {
+    customerId = null
+    drifted = true
+  }
+
+  const lines = state.lines.map((line) => {
+    if (line.catalogItemId !== null && !ctx.activeCatalogItemIds.has(line.catalogItemId)) {
+      drifted = true
+      return { ...line, catalogItemId: null }
+    }
+    return line
+  })
+
+  return {
+    state: { ...state, companyId, customerId, lines },
+    drifted,
+  }
+}
