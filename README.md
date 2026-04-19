@@ -2,7 +2,7 @@
 
 Business management system for **Prosesa Diseño y Publicidad** — a print and advertising shop in Ciudad del Carmen, Campeche, Mexico. Replaces handwritten sales notes, daily Excel reconciliation, and manual stock checks with a single web app.
 
-> **Status:** Phase 1 (MVP) in development.
+> **Status:** Phase 1 (MVP) in development. M1–M3 shipped (2026-04-15 → 2026-04-19); M4 (project sales + work orders) is next.
 > **Audience:** 4–5 users at launch (admin, sales, reception), extensible to workshop and accounting roles.
 
 ---
@@ -192,9 +192,63 @@ Override the source project with `SUPABASE_PROJECT_ID=<ref> npm run db:types` (d
 
 ## Changelog
 
-Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are `YYYY-MM-DD`.
+Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are `YYYY-MM-DD`. Milestone-level entries summarize what shipped; per-ticket detail lives in the Linear milestone descriptions.
 
 ### [Unreleased]
+
+_(empty — M4 Project sales & work orders opens next; blocked on `R-1` work-order line-item shape research per `CLAUDE.md` §7.)_
+
+### 2026-04-19 — M3: Counter sales POS
+
+#### Added
+
+- Schema + RPC for `sales_notes`, `sales_note_lines`, `payments`; `create_sales_note` with mixto support; generic audit trigger attached to all three.
+- POS counter flow: layout, catalog search + free-form lines, per-line discounts, explicit IVA breakdown (per-company configurable, default 16%), mixto payments, thermal ticket print via WebUSB.
+- Sales-notes history list + detail drawer with reprint, register-payment, and admin-only cancel; URL-driven filters and search params.
+- POS polish: per-workstation sticky company picker + per-company tints (A teal / B amber), draft persistence across reloads with drift sanitize, "Descartar borrador" confirm, "Editar cliente" from POS, fiscal-completeness warning banner when `Requiere factura` is on.
+- Sales-note drawer polish: `Requiere factura` badge + row, customer name opens the shared edit dialog.
+- Customer schema additions: `direccion_fiscal`, `uso_cfdi` (both nullable); SAT `c_UsoCFDI` catalog constant.
+- Cross-cutting UI: `PageContainer` width cap (`/pos` stays full-bleed); shared list primitives (`ListLoadingCard` w/ skeleton, `ListErrorCard`, `ListEmptyCard`, `ListPagination`) consumed by six list views.
+- SAT CFDI `c_UsoCFDI` + `c_RegimenFiscal` constants under `src/lib/constants/`.
+
+#### Changed
+
+- SPEC §4.1 realigned — company selector is per-document, not a persistent header indicator (LIT-64).
+- `customerFiscalStatus` added as the read-time fiscal-completeness check, reused by POS and queued for Dana's Contpaqi workbench (LIT-90).
+
+#### Decided
+
+- `CLAUDE.md` §17: Facturapi **deferred indefinitely**. Dana keeps Contpaqi permanently; ProsesaOS becomes the pre-invoice data workbench + manual status ledger.
+
+**Exit criterion met:** a counter sale can be completed end-to-end (select items → charge → print thermal ticket) with a valid folio and an immutable record. Target was 2026-05-05; delivered ~2.5 weeks early.
+
+### 2026-04-16 — M2: Core entities
+
+#### Added
+
+- Two razones sociales seeded with placeholder fiscal data (A, B); admin settings surface for companies, users, and printer.
+- Customers CRUD shared across both companies; SAT `c_RegimenFiscal` catalog constant; RFC validation helper.
+- Catalog CRUD (categories + items) with fixed and variable pricing modes, soft delete, reactivation toggle.
+- Inline per-document company picker pattern established on transactional forms.
+- In-app user management UI (admin list, invite, role toggle, active state).
+
+#### Changed
+
+- `customers`: dropped `is_publico_general` sentinel and `requiere_factura` flag (LIT-67). The SAT `XAXX010101000` fallback moves to document-render code; `requiere_factura` moves to `sales_notes` / `work_orders` / quotations.
+
+### 2026-04-15 — M1: Foundation
+
+#### Added
+
+- Repo scaffolded (Vite + React + TypeScript + Tailwind + shadcn/ui + TanStack Router + TanStack Query).
+- ESLint v9 + Prettier + commitlint + Husky + conventional commits enforced.
+- Supabase staging provisioned; typed env via zod (`src/lib/env.ts`).
+- Auth + `profiles` + 2 roles (`admin` / `ventas`) + baseline RLS policy kit + generic audit trigger (`audit_logs`) + bug-report FAB (`bug_reports`).
+- App shell, route guards by role, password set/update route, brand theme tokens (logo, typography, teal primary).
+- GitHub Actions CI running `lint`, `typecheck`, `build` on PRs against `main` / `production`.
+- `production` long-lived branch for future release workflow; `main` deploys to Vercel's `staging` environment (PR previews intentionally disabled).
+
+### 2026-04-14 — Pre-M1 scaffolding
 
 #### Added
 
@@ -203,8 +257,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are `YYY
 - Agent contract (`CLAUDE.md`) with `AGENTS.md` pointing to it.
 - This README.
 - Phase 1 Linear structure proposal (`docs/linear-phase-1.md`).
-- GitHub Actions CI workflow running `lint`, `typecheck`, and `build` on PRs against `main` and `production`.
-- `production` long-lived branch for future release workflow; `main` now deploys to Vercel's `staging` environment instead of production.
 
 ---
 
