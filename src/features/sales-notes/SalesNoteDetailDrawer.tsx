@@ -14,6 +14,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { PaymentDialog } from '@/features/pos/PaymentDialog'
 import { formatMXN } from '@/lib/format'
 import { useCompany } from '@/lib/queries/companies'
@@ -83,6 +84,7 @@ function DrawerBody({ noteId }: { noteId: string }) {
 
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [customerEditOpen, setCustomerEditOpen] = useState(false)
 
   const addPayments = useAddPaymentsToNote()
   const reprint = useReprintTicket()
@@ -161,12 +163,21 @@ function DrawerBody({ noteId }: { noteId: string }) {
   return (
     <>
       <SheetHeader>
-        <SheetTitle className="flex items-center gap-2">
+        <SheetTitle className="flex flex-wrap items-center gap-2">
           <span className="font-mono">
             {messages.titlePrefix}
             {note.folio}
           </span>
           <Badge variant={statusVariant(status)}>{salesNotesMessages.status[status]}</Badge>
+          {note.requires_invoice && (
+            <Badge
+              variant="outline"
+              className="border-primary/40 text-primary"
+              data-testid="sales-note-drawer-requires-invoice-badge"
+            >
+              {messages.badges.requiresInvoice}
+            </Badge>
+          )}
         </SheetTitle>
         <SheetDescription>{formatDate(note.created_at)}</SheetDescription>
       </SheetHeader>
@@ -180,7 +191,23 @@ function DrawerBody({ noteId }: { noteId: string }) {
             <dt className="text-muted-foreground">{messages.fields.company}</dt>
             <dd>{companyLabel}</dd>
             <dt className="text-muted-foreground">{messages.fields.customer}</dt>
-            <dd>{customerLabel}</dd>
+            <dd>
+              {customer ? (
+                <button
+                  type="button"
+                  className="text-primary underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
+                  onClick={() => setCustomerEditOpen(true)}
+                  aria-label={messages.actions.editCustomerAria}
+                  data-testid="sales-note-drawer-customer-edit"
+                >
+                  {customerLabel}
+                </button>
+              ) : (
+                customerLabel
+              )}
+            </dd>
+            <dt className="text-muted-foreground">{messages.fields.requiresInvoice}</dt>
+            <dd>{note.requires_invoice ? messages.values.yes : messages.values.no}</dd>
             <dt className="text-muted-foreground">{messages.fields.date}</dt>
             <dd>{formatDate(note.created_at)}</dd>
             {note.notes && (
@@ -380,6 +407,23 @@ function DrawerBody({ noteId }: { noteId: string }) {
           // onClose here would hide the outcome they just approved.
         }}
       />
+
+      {/*
+       * Customer edit dialog. Mounts only when a customer is attached
+       * so we never pass `customer={null}`. `useUpdateCustomer`
+       * refreshes `customerKeys.detail(id)` on save, which this
+       * drawer's `useCustomer(note.customer_id)` subscription picks
+       * up automatically — no manual refetch needed.
+       */}
+      {customer && (
+        <CustomerFormDialog
+          mode="edit"
+          customer={customer}
+          open={customerEditOpen}
+          onOpenChange={setCustomerEditOpen}
+          onSaved={() => setCustomerEditOpen(false)}
+        />
+      )}
     </>
   )
 }
