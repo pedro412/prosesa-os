@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { Database } from '@/types/database'
+import { mxDayStartUtc, mxNextDayStartUtc } from '@/lib/mx-date'
 
 import { supabase } from '../supabase'
 
@@ -41,13 +42,20 @@ export interface SalesNoteWithDetails extends SalesNote {
 export interface ListSalesNotesOptions {
   companyId?: string
   status?: SalesNoteStatus
-  // ISO date strings (YYYY-MM-DD). Inclusive on both ends in the UI,
-  // translated to a half-open created_at range at query time.
+  // YYYY-MM-DD strings representing MX calendar days. Translated at
+  // query time to a half-open UTC range on `created_at` so "today"
+  // means the operator's wall-clock day, not UTC midnight.
   from?: string
   to?: string
   // Free-text match against folio or customer display. PostgREST OR
   // filter — wildcards in user input are left in, same as customers.
   search?: string
+  // LIT-35: payment-method filter. Matches notes that have at least
+  // one payment row of this method, via an inner join on `payments`.
+  paymentMethod?: PaymentMethod
+  // LIT-35: exact customer match. The history UI exposes this as a
+  // Cliente combobox instead of cross-table text search.
+  customerId?: string
 }
 
 export interface PagedSalesNotesOptions extends ListSalesNotesOptions {
@@ -74,6 +82,8 @@ export const salesNoteKeys = {
         from: opts.from ?? null,
         to: opts.to ?? null,
         search: opts.search?.trim() ?? '',
+        paymentMethod: opts.paymentMethod ?? null,
+        customerId: opts.customerId ?? null,
       },
     ] as const,
   paged: (opts: PagedSalesNotesOptions = {}) =>
@@ -86,6 +96,8 @@ export const salesNoteKeys = {
         from: opts.from ?? null,
         to: opts.to ?? null,
         search: opts.search?.trim() ?? '',
+        paymentMethod: opts.paymentMethod ?? null,
+        customerId: opts.customerId ?? null,
         page: opts.page ?? 0,
         pageSize: opts.pageSize ?? DEFAULT_PAGE_SIZE,
       },
@@ -105,21 +117,44 @@ function sanitizeSearch(raw: string): string {
 }
 
 export async function listSalesNotes(opts: ListSalesNotesOptions = {}): Promise<SalesNote[]> {
-  let query = supabase.from('sales_notes').select('*').order('created_at', { ascending: false })
-
-  if (opts.companyId) query = query.eq('company_id', opts.companyId)
-  if (opts.status) query = query.eq('status', opts.status)
-  if (opts.from) query = query.gte('created_at', opts.from)
-  if (opts.to) query = query.lte('created_at', opts.to)
-
-  if (opts.search) {
-    const sanitized = sanitizeSearch(opts.search)
-    if (sanitized.length > 0) {
-      const pattern = `%${sanitized}%`
-      query = query.ilike('folio', pattern)
+  // Inner join on payments when a paymentMethod filter is active so
+  // PostgREST returns only notes that have at least one matching
+  // payment row. We branch rather than share a variable select
+  // string because Supabase's generated types can't narrow a dynamic
+  // `select()` argument — two concrete calls keep both paths
+  // strongly typed.
+  if (opts.paymentMethod) {
+    let query = supabase
+      .from('sales_notes')
+      .select('*, payments!inner(method)')
+      .eq('payments.method', opts.paymentMethod)
+      .order('created_at', { ascending: false })
+    if (opts.companyId) query = query.eq('company_id', opts.companyId)
+    if (opts.status) query = query.eq('status', opts.status)
+    if (opts.customerId) query = query.eq('customer_id', opts.customerId)
+    if (opts.from) query = query.gte('created_at', mxDayStartUtc(opts.from))
+    if (opts.to) query = query.lt('created_at', mxNextDayStartUtc(opts.to))
+    if (opts.search) {
+      const sanitized = sanitizeSearch(opts.search)
+      if (sanitized.length > 0) query = query.ilike('folio', `%${sanitized}%`)
     }
+    const { data, error } = await query
+    if (error) throw error
+    // Drop the embedded payments projection — consumers of this
+    // function expect the header-only shape.
+    return (data ?? []).map(({ payments: _payments, ...note }) => note)
   }
 
+  let query = supabase.from('sales_notes').select('*').order('created_at', { ascending: false })
+  if (opts.companyId) query = query.eq('company_id', opts.companyId)
+  if (opts.status) query = query.eq('status', opts.status)
+  if (opts.customerId) query = query.eq('customer_id', opts.customerId)
+  if (opts.from) query = query.gte('created_at', mxDayStartUtc(opts.from))
+  if (opts.to) query = query.lt('created_at', mxNextDayStartUtc(opts.to))
+  if (opts.search) {
+    const sanitized = sanitizeSearch(opts.search)
+    if (sanitized.length > 0) query = query.ilike('folio', `%${sanitized}%`)
+  }
   const { data, error } = await query
   if (error) throw error
   return data ?? []
@@ -133,24 +168,47 @@ export async function listSalesNotesPaged(
   const from = page * pageSize
   const to = from + pageSize - 1
 
+  // See listSalesNotes for the reason we branch the select. The
+  // `count: 'exact'` modifier reports the filtered count either way
+  // so pagination math stays correct.
+  if (opts.paymentMethod) {
+    let query = supabase
+      .from('sales_notes')
+      .select('*, payments!inner(method)', { count: 'exact' })
+      .eq('payments.method', opts.paymentMethod)
+      .order('created_at', { ascending: false })
+      .range(from, to)
+    if (opts.companyId) query = query.eq('company_id', opts.companyId)
+    if (opts.status) query = query.eq('status', opts.status)
+    if (opts.customerId) query = query.eq('customer_id', opts.customerId)
+    if (opts.from) query = query.gte('created_at', mxDayStartUtc(opts.from))
+    if (opts.to) query = query.lt('created_at', mxNextDayStartUtc(opts.to))
+    if (opts.search) {
+      const sanitized = sanitizeSearch(opts.search)
+      if (sanitized.length > 0) query = query.ilike('folio', `%${sanitized}%`)
+    }
+    const { data, error, count } = await query
+    if (error) throw error
+    return {
+      rows: (data ?? []).map(({ payments: _payments, ...note }) => note),
+      totalCount: count ?? 0,
+    }
+  }
+
   let query = supabase
     .from('sales_notes')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to)
-
   if (opts.companyId) query = query.eq('company_id', opts.companyId)
   if (opts.status) query = query.eq('status', opts.status)
-  if (opts.from) query = query.gte('created_at', opts.from)
-  if (opts.to) query = query.lte('created_at', opts.to)
-
+  if (opts.customerId) query = query.eq('customer_id', opts.customerId)
+  if (opts.from) query = query.gte('created_at', mxDayStartUtc(opts.from))
+  if (opts.to) query = query.lt('created_at', mxNextDayStartUtc(opts.to))
   if (opts.search) {
     const sanitized = sanitizeSearch(opts.search)
-    if (sanitized.length > 0) {
-      query = query.ilike('folio', `%${sanitized}%`)
-    }
+    if (sanitized.length > 0) query = query.ilike('folio', `%${sanitized}%`)
   }
-
   const { data, error, count } = await query
   if (error) throw error
   return { rows: data ?? [], totalCount: count ?? 0 }
@@ -291,6 +349,99 @@ export function useCreateSalesNote() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: salesNoteKeys.lists() })
       queryClient.invalidateQueries({ queryKey: paymentKeys.all })
+    },
+  })
+}
+
+// ============================================================================
+// Write: addPaymentsToNote (LIT-35 "Registrar pago")
+// ============================================================================
+
+// Batch-inserts payment rows against an existing note. The payments
+// AFTER trigger from M3-3 recomputes sales_notes.status (pendiente /
+// abonada / pagada) based on the running sum, so the client never
+// writes status itself. Inline `created_by` is omitted — the
+// stamp-actor trigger on payments fills it from auth.uid().
+export async function addPaymentsToNote(
+  salesNoteId: string,
+  payments: CreateSalesNotePaymentInput[]
+): Promise<void> {
+  if (payments.length === 0) return
+  const rows = payments.map((payment) => ({
+    sales_note_id: salesNoteId,
+    method: payment.method,
+    card_type: payment.card_type,
+    amount: payment.amount,
+  }))
+  const { error } = await supabase.from('payments').insert(rows)
+  if (error) throw error
+}
+
+export function useAddPaymentsToNote() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      salesNoteId,
+      payments,
+    }: {
+      salesNoteId: string
+      payments: CreateSalesNotePaymentInput[]
+    }) => addPaymentsToNote(salesNoteId, payments),
+    onSuccess: (_, { salesNoteId }) => {
+      // Detail view pulls the fresh payments + recomputed status; list
+      // views show the updated status badge.
+      queryClient.invalidateQueries({ queryKey: salesNoteKeys.detail(salesNoteId) })
+      queryClient.invalidateQueries({ queryKey: salesNoteKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: paymentKeys.byNote(salesNoteId) })
+    },
+  })
+}
+
+// ============================================================================
+// Write: cancelSalesNote (LIT-35 "Cancelar nota", admin-only)
+// ============================================================================
+
+// Sets status='cancelada' + cancelled_at/by/reason in one UPDATE.
+// RLS on sales_notes only grants UPDATE to admins, so a non-admin
+// caller sees the operation fail with a PostgREST 403/42501. The UI
+// also hides the button for non-admins to avoid round-tripping.
+//
+// Folio is NOT freed — no DELETE policy exists, and the per-company
+// folio sequence keeps climbing. A cancelled note's folio stays
+// bound to the note so prior prints remain accountable.
+export async function cancelSalesNote(id: string, reason: string): Promise<SalesNote> {
+  const trimmed = reason.trim()
+  if (trimmed.length === 0) {
+    // Defensive — the UI zod schema already blocks this path, but we
+    // don't want to write a row that says "cancelled for: ''".
+    throw new Error('cancelSalesNote: reason is required')
+  }
+  const { data, error } = await supabase
+    .from('sales_notes')
+    .update({
+      status: 'cancelada',
+      cancelled_at: new Date().toISOString(),
+      cancellation_reason: trimmed,
+    })
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export function useCancelSalesNote() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => cancelSalesNote(id, reason),
+    onSuccess: (note) => {
+      queryClient.setQueryData(
+        salesNoteKeys.detail(note.id),
+        (prev: SalesNoteWithDetails | null) => (prev ? { ...prev, ...note } : prev)
+      )
+      queryClient.invalidateQueries({ queryKey: salesNoteKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: salesNoteKeys.detail(note.id) })
     },
   })
 }

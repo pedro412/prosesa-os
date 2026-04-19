@@ -268,6 +268,31 @@ export function useCustomer(id: string | undefined) {
   })
 }
 
+// Minimal batch read used by list views that render customer names
+// alongside FK-scoped rows (sales notes, work orders). Only selects
+// id + nombre so we don't pay for per-customer detail we never show.
+// The shape is a Map for O(1) per-row lookups in the render loop.
+export async function listCustomersByIds(ids: string[]): Promise<Map<string, string>> {
+  const unique = Array.from(new Set(ids.filter((id) => id.length > 0)))
+  if (unique.length === 0) return new Map()
+  const { data, error } = await supabase.from('customers').select('id, nombre').in('id', unique)
+
+  if (error) throw error
+  const map = new Map<string, string>()
+  for (const row of data ?? []) map.set(row.id, row.nombre)
+  return map
+}
+
+export function useCustomersByIds(ids: string[]) {
+  const sorted = Array.from(new Set(ids)).sort()
+  return useQuery({
+    queryKey: [...customerKeys.all, 'by-ids', sorted] as const,
+    queryFn: () => listCustomersByIds(sorted),
+    enabled: sorted.length > 0,
+    staleTime: 60_000,
+  })
+}
+
 export function useCreateCustomer() {
   const queryClient = useQueryClient()
   return useMutation({

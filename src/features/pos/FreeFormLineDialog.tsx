@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { MoneyInput } from '@/components/ui/money-input'
 import {
   Select,
   SelectContent,
@@ -199,14 +200,13 @@ function FreeFormLineFormInner({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ff-price">{posMessages.freeForm.fields.unitPrice} *</Label>
-          <Input
+          <MoneyInput
             id="ff-price"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={state.unitPrice}
-            onChange={(e) => onField('unitPrice')(e.target.value)}
+            value={Number(state.unitPrice) || 0}
+            // Keep the form state as a string so validate() and the
+            // existing superRefine-style checks don't have to change —
+            // empty ↔ 0 round-trips losslessly through the adapter.
+            onChange={(next) => onField('unitPrice')(next > 0 ? String(next) : '')}
             aria-invalid={errors.unitPrice ? true : undefined}
           />
           {errors.unitPrice && <p className="text-destructive text-xs">{errors.unitPrice}</p>}
