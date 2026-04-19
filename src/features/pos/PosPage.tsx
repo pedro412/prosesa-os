@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { useItems } from '@/lib/queries/catalog'
 import { type Company, useCompanies } from '@/lib/queries/companies'
 import { type Customer, useCustomer } from '@/lib/queries/customers'
@@ -30,6 +31,7 @@ import { usePrinterStore } from '@/store/printer-store'
 import { CatalogSearchPanel } from './CatalogSearchPanel'
 import { CompanySelect } from './CompanySelect'
 import { CustomerSelect } from './CustomerSelect'
+import { FiscalWarningBanner } from './FiscalWarningBanner'
 import { FreeFormLineDialog } from './FreeFormLineDialog'
 import { LineItemsTable } from './LineItemsTable'
 import { posMessages } from './messages'
@@ -93,6 +95,10 @@ export function PosPage() {
   const [freeFormOpen, setFreeFormOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
+  // Edit dialog for the attached customer. Lifted to PosPage so the
+  // fiscal-warning banner's "Completar datos fiscales" action and
+  // `CustomerSelect`'s Pencil button both open the same dialog.
+  const [customerEditOpen, setCustomerEditOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null)
 
@@ -454,6 +460,7 @@ export function PosPage() {
               setSelectedCustomer(customer)
               dispatch({ type: 'setCustomer', customerId: customer?.id ?? null })
             }}
+            onRequestEdit={() => setCustomerEditOpen(true)}
           />
 
           <div className="space-y-1.5">
@@ -485,6 +492,12 @@ export function PosPage() {
             lines={state.lines}
             ivaRate={selectedCompany ? Number(selectedCompany.iva_rate) : null}
             ivaInclusive={selectedCompany ? selectedCompany.iva_inclusive : null}
+          />
+
+          <FiscalWarningBanner
+            requiresInvoice={state.requiresInvoice}
+            customer={selectedCustomer}
+            onRequestEdit={() => setCustomerEditOpen(true)}
           />
 
           <Button
@@ -521,6 +534,27 @@ export function PosPage() {
         submitting={createMutation.isPending}
         onConfirm={handleConfirmPayments}
       />
+
+      {/*
+       * Customer edit dialog. Mounted here (not inside CustomerSelect)
+       * so both the Pencil button in the selected-customer card and
+       * the fiscal-warning banner's "Completar datos fiscales" action
+       * open the same dialog. Only mounts when a customer is actually
+       * attached — guards against passing `customer={null}` to the
+       * underlying form.
+       */}
+      {selectedCustomer && (
+        <CustomerFormDialog
+          mode="edit"
+          customer={selectedCustomer}
+          open={customerEditOpen}
+          onOpenChange={setCustomerEditOpen}
+          onSaved={(updated) => {
+            setSelectedCustomer(updated)
+            setCustomerEditOpen(false)
+          }}
+        />
+      )}
 
       <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
         <AlertDialogContent size="sm">

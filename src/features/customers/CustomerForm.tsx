@@ -21,6 +21,11 @@ import {
   satRegimenByGroup,
 } from '@/lib/constants/sat-regimen-fiscal'
 import {
+  findUsoCfdiByClave,
+  satUsoCfdiByGroup,
+  type UsoCfdiAplicaA,
+} from '@/lib/constants/sat-uso-cfdi'
+import {
   type Customer,
   DuplicateCustomerError,
   findCustomerByEmail,
@@ -57,6 +62,8 @@ interface FormState {
   rfc: string
   regimen_fiscal: string
   cp_fiscal: string
+  direccion_fiscal: string
+  uso_cfdi: string
   telefono: string
   email: string
   notas: string
@@ -70,6 +77,8 @@ const blankState: FormState = {
   rfc: '',
   regimen_fiscal: '',
   cp_fiscal: '',
+  direccion_fiscal: '',
+  uso_cfdi: '',
   telefono: '',
   email: '',
   notas: '',
@@ -91,6 +100,8 @@ function toFormState(customer: Customer | undefined, initialNombre: string | und
     rfc: customer.rfc ?? '',
     regimen_fiscal: customer.regimen_fiscal ?? '',
     cp_fiscal: customer.cp_fiscal ?? '',
+    direccion_fiscal: customer.direccion_fiscal ?? '',
+    uso_cfdi: customer.uso_cfdi ?? '',
     telefono: customer.telefono ?? '',
     email: customer.email ?? '',
     notas: customer.notas ?? '',
@@ -117,6 +128,8 @@ const schema = z.object({
     .refine((v) => !v || v.trim() === '' || /^\d{5}$/.test(v.trim()), {
       message: customersMessages.form.errors.cpFormat,
     }),
+  direccion_fiscal: z.string().optional(),
+  uso_cfdi: z.string().optional(),
   telefono: z
     .string()
     .min(1, customersMessages.form.errors.telefonoRequired)
@@ -152,6 +165,8 @@ function buildCreatePayload(state: FormState): NewCustomer {
     rfc: state.rfc ? normalizeRfc(state.rfc) : null,
     regimen_fiscal: blankToNull(state.regimen_fiscal),
     cp_fiscal: blankToNull(state.cp_fiscal),
+    direccion_fiscal: blankToNull(state.direccion_fiscal),
+    uso_cfdi: blankToNull(state.uso_cfdi),
     telefono: state.telefono,
     email: blankToNull(state.email),
     notas: blankToNull(state.notas),
@@ -174,6 +189,12 @@ function buildUpdatePatch(customer: Customer, state: FormState) {
 
   const cp = blankToNull(state.cp_fiscal)
   if (cp !== customer.cp_fiscal) patch.cp_fiscal = cp
+
+  const direccion = blankToNull(state.direccion_fiscal)
+  if (direccion !== customer.direccion_fiscal) patch.direccion_fiscal = direccion
+
+  const uso = blankToNull(state.uso_cfdi)
+  if (uso !== customer.uso_cfdi) patch.uso_cfdi = uso
 
   if (state.telefono !== customer.telefono) patch.telefono = state.telefono
 
@@ -220,6 +241,7 @@ export function CustomerForm({
   // silently overwrite it when the user saves an untouched form.
   const regimenIsLegacy =
     state.regimen_fiscal !== '' && findRegimenByClave(state.regimen_fiscal) === null
+  const usoIsLegacy = state.uso_cfdi !== '' && findUsoCfdiByClave(state.uso_cfdi) === null
 
   function onField<K extends keyof FormState>(key: K) {
     return (value: FormState[K]) => setState((prev) => ({ ...prev, [key]: value }))
@@ -422,6 +444,49 @@ export function CustomerForm({
         {fieldErrors.cp_fiscal && (
           <p className="text-destructive text-sm">{fieldErrors.cp_fiscal}</p>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="customer-uso-cfdi">{messages.usoCfdiLabel}</Label>
+        <Select
+          value={state.uso_cfdi === '' ? SELECT_NONE : state.uso_cfdi}
+          onValueChange={(value) => onField('uso_cfdi')(value === SELECT_NONE ? '' : value)}
+          disabled={submitting}
+        >
+          <SelectTrigger id="customer-uso-cfdi" className="w-full">
+            <SelectValue placeholder={messages.usoCfdiPlaceholder} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SELECT_NONE}>—</SelectItem>
+            {usoIsLegacy && (
+              <SelectItem value={state.uso_cfdi}>
+                {messages.usoCfdiLegacy(state.uso_cfdi)}
+              </SelectItem>
+            )}
+            {(['ambas', 'fisica', 'moral'] as UsoCfdiAplicaA[]).map((group) => (
+              <SelectGroup key={group}>
+                <SelectLabel>{messages.usoCfdiGroups[group]}</SelectLabel>
+                {satUsoCfdiByGroup[group].map((u) => (
+                  <SelectItem key={u.clave} value={u.clave}>
+                    {u.clave} · {u.descripcion}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2 md:col-span-2">
+        <Label htmlFor="customer-direccion">{messages.direccionFiscalLabel}</Label>
+        <Textarea
+          id="customer-direccion"
+          value={state.direccion_fiscal}
+          onChange={(e) => onField('direccion_fiscal')(e.target.value)}
+          placeholder={messages.direccionFiscalPlaceholder}
+          rows={2}
+          disabled={submitting}
+        />
       </div>
 
       <div className="space-y-2 md:col-span-2">

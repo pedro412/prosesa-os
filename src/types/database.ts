@@ -236,6 +236,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           deleted_at: string | null
+          direccion_fiscal: string | null
           email: string | null
           id: string
           nombre: string
@@ -246,12 +247,14 @@ export type Database = {
           telefono: string
           updated_at: string
           updated_by: string | null
+          uso_cfdi: string | null
         }
         Insert: {
           cp_fiscal?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          direccion_fiscal?: string | null
           email?: string | null
           id?: string
           nombre: string
@@ -262,12 +265,14 @@ export type Database = {
           telefono: string
           updated_at?: string
           updated_by?: string | null
+          uso_cfdi?: string | null
         }
         Update: {
           cp_fiscal?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          direccion_fiscal?: string | null
           email?: string | null
           id?: string
           nombre?: string
@@ -278,6 +283,7 @@ export type Database = {
           telefono?: string
           updated_at?: string
           updated_by?: string | null
+          uso_cfdi?: string | null
         }
         Relationships: []
       }
