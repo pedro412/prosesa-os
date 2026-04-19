@@ -12,6 +12,7 @@ import { fetchAndDitherLogo } from '@/lib/print/logo'
 import { printViaUSB } from '@/lib/print/usb-printer'
 import { type CreateSalesNotePaymentInput, useCreateSalesNote } from '@/lib/queries/sales-notes'
 import { computeLineTotal, computeTotals, type Totals } from '@/lib/tax'
+import { usePosPreferencesStore } from '@/store/pos-preferences'
 import { usePrinterStore } from '@/store/printer-store'
 
 import { CatalogSearchPanel } from './CatalogSearchPanel'
@@ -74,6 +75,27 @@ export function PosPage() {
     () => companies?.find((c) => c.id === state.companyId) ?? null,
     [companies, state.companyId]
   )
+
+  // Sticky default: on first load with no selection, pre-fill from the
+  // per-workstation store, or auto-pick when only one active company
+  // exists. A stored id that no longer matches an active company is
+  // silently ignored — `useCompanies({ includeInactive: false })` has
+  // already filtered deactivated rows out. No-op once the operator (or
+  // this effect) has set a company, so the post-Cobrar reset behavior
+  // at pos-form-state.ts:161 keeps working.
+  const lastCompanyId = usePosPreferencesStore((s) => s.lastCompanyId)
+  const setLastCompanyId = usePosPreferencesStore((s) => s.setLastCompanyId)
+  useEffect(() => {
+    if (state.companyId !== null) return
+    if (!companies || companies.length === 0) return
+    if (lastCompanyId && companies.some((c) => c.id === lastCompanyId)) {
+      dispatch({ type: 'setCompany', companyId: lastCompanyId })
+      return
+    }
+    if (companies.length === 1) {
+      dispatch({ type: 'setCompany', companyId: companies[0].id })
+    }
+  }, [companies, state.companyId, lastCompanyId])
 
   // Computed once so the totals panel and the payment dialog read from
   // the same source of truth (no drift between "total to cobrar" and
@@ -261,7 +283,10 @@ export function PosPage() {
         <div className="space-y-6">
           <CompanySelect
             value={state.companyId}
-            onChange={(companyId) => dispatch({ type: 'setCompany', companyId })}
+            onChange={(companyId) => {
+              dispatch({ type: 'setCompany', companyId })
+              setLastCompanyId(companyId)
+            }}
           />
 
           <CustomerSelect
