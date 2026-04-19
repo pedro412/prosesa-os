@@ -1,3 +1,5 @@
+import { CheckCircle2Icon } from 'lucide-react'
+
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -6,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import { type Company, useCompanies } from '@/lib/queries/companies'
 
 import { posMessages } from './messages'
@@ -27,11 +30,24 @@ export function CompanySelect({ value, onChange }: CompanySelectProps) {
     onChange(picked?.id ?? null, picked)
   }
 
+  const selected = value !== null
+
   return (
     <div className="space-y-1.5">
       <Label htmlFor="pos-company">{posMessages.company.label}</Label>
       <Select value={value ?? ''} onValueChange={handleChange} disabled={isPending}>
-        <SelectTrigger id="pos-company" className="w-full" data-testid="pos-company-trigger">
+        <SelectTrigger
+          id="pos-company"
+          className={cn(
+            'w-full',
+            selected
+              ? 'border-primary/40 bg-primary/10 text-primary font-semibold'
+              : 'border-destructive/30 text-muted-foreground'
+          )}
+          data-testid="pos-company-trigger"
+          data-selected={selected}
+        >
+          {selected && <CheckCircle2Icon className="text-primary size-4" aria-hidden />}
           <SelectValue
             placeholder={isPending ? posMessages.company.loading : posMessages.company.placeholder}
           />
