@@ -11,8 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { MoneyInput } from '@/components/ui/money-input'
 import {
   Select,
   SelectContent,
@@ -266,7 +266,7 @@ function PaymentFormInner({
   return (
     <form onSubmit={handleSubmit} className="space-y-4" data-testid="pos-payment-form">
       <div className="space-y-3">
-        {rows.map((row, idx) => {
+        {parsedRows.map((row, idx) => {
           const err = rowErrors[row.id] ?? {}
           const isTarjeta = row.method === 'tarjeta'
           return (
@@ -338,14 +338,10 @@ function PaymentFormInner({
                 {idx === 0 && (
                   <Label htmlFor={`pay-amount-${row.id}`}>{posMessages.payments.amountLabel}</Label>
                 )}
-                <Input
+                <MoneyInput
                   id={`pay-amount-${row.id}`}
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={row.amount}
-                  onChange={(e) => updateRow(row.id, { amount: e.target.value })}
+                  value={Number.isFinite(row.parsedAmount) ? row.parsedAmount : 0}
+                  onChange={(next) => updateRow(row.id, { amount: next > 0 ? String(next) : '' })}
                   aria-invalid={err.amount ? true : undefined}
                   aria-label={posMessages.payments.amountLabel}
                   autoFocus={idx === 0}
@@ -419,15 +415,10 @@ function PaymentFormInner({
       {showCashHelper && (
         <div className="space-y-1.5" data-testid="pos-payment-cash-helper">
           <Label htmlFor="pay-cash-tendered">{posMessages.payments.cashTendered.label}</Label>
-          <Input
+          <MoneyInput
             id="pay-cash-tendered"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={cashTendered}
-            onChange={(e) => setCashTendered(e.target.value)}
-            placeholder={posMessages.payments.cashTendered.placeholder}
+            value={tenderedValid ? tenderedNum : 0}
+            onChange={(next) => setCashTendered(next > 0 ? String(next) : '')}
             disabled={submitting}
           />
           {tenderedInsufficient && (
