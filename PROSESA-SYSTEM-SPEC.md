@@ -164,11 +164,12 @@ The system is considered delivered when:
 - Store two company profiles with: business name (nombre comercial), legal name (razón social), RFC, tax regime (régimen fiscal), fiscal address, logo, contact info
 - Every sale note and work order must be linked to exactly one company
 - Folio sequences are independent per company (e.g., Company A: A-0001, A-0002... Company B: B-0001, B-0002...)
-- A **company selector** must be visible and accessible when creating any transaction — the operator chooses which company the transaction belongs to
-- Catalog and inventory are shared across both companies
+- A **company picker** is embedded inline in every sale / quotation / work-order creation form — the operator chooses which company the transaction belongs to at the moment of creation. The picker is required; the form cannot submit without a pick.
+- Catalog, inventory, customers, and users are **shared** across both companies and are never filtered by company in the UI — `company_id` is purely a billing attribution on the transactional document, not a data-scoping mechanism.
+- Once a sale is saved, `company_id` is immutable — it is displayed read-only on detail views and cannot be transferred between companies.
 - Reports must be filterable by company and also support consolidated view
 
-**UI detail**: The company selector should be prominent but not intrusive. Consider a persistent indicator in the header/nav showing which company is currently active, with easy toggle.
+**UI detail**: The picker lives inline on the creation form (not in the global header/nav). With only two razones sociales and no cross-cutting data-scoping, a global selector would imply the wrong mental model (that switching company hides/filters data) and add friction without product value. Per-operator stickiness — remembering the last company picked by the current user — is acceptable as a convenience and lives on the form itself, not in global state.
 
 ### 4.2 Product & Service Catalog
 
