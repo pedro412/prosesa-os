@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 
+import { ListEmptyCard, ListErrorCard, ListLoadingCard } from '@/components/layout/list-primitives'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -45,29 +46,14 @@ export function CategoriesList({ canEdit }: CategoriesListProps) {
         </div>
       )}
 
-      {isPending && (
-        <Card>
-          <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {messages.list.loading}
-          </CardContent>
-        </Card>
-      )}
+      {isPending && <ListLoadingCard skeleton={{ rows: 5, columns: canEdit ? 3 : 2 }} />}
 
       {isError && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{messages.list.loadError}</CardTitle>
-            <CardDescription>{messages.toast.genericError}</CardDescription>
-          </CardHeader>
-        </Card>
+        <ListErrorCard title={messages.list.loadError} description={messages.toast.genericError} />
       )}
 
       {!isPending && !isError && rows.length === 0 && (
-        <Card>
-          <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {messages.list.empty}
-          </CardContent>
-        </Card>
+        <ListEmptyCard message={messages.list.empty} />
       )}
 
       {!isPending && !isError && rows.length > 0 && (

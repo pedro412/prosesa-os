@@ -2,8 +2,14 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Plus, Search, Trash, Trash2 } from 'lucide-react'
 
+import {
+  ListEmptyCard,
+  ListErrorCard,
+  ListLoadingCard,
+  ListPagination,
+} from '@/components/layout/list-primitives'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -51,8 +57,6 @@ export function CustomersList() {
   const totalCount = data?.totalCount ?? 0
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const rows = data?.rows ?? []
-  const currentPageNumber = page + 1
-  const isFirstPage = page === 0
   const isLastPage = page >= totalPages - 1
 
   return (
@@ -93,29 +97,16 @@ export function CustomersList() {
         />
       </div>
 
-      {isPending && (
-        <Card>
-          <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {messages.list.loading}
-          </CardContent>
-        </Card>
-      )}
+      {isPending && <ListLoadingCard skeleton={{ rows: PAGE_SIZE, columns: 5 }} />}
 
       {isError && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{messages.list.loadError}</CardTitle>
-            <CardDescription>{messages.toast.genericError}</CardDescription>
-          </CardHeader>
-        </Card>
+        <ListErrorCard title={messages.list.loadError} description={messages.toast.genericError} />
       )}
 
       {!isPending && !isError && rows.length === 0 && (
-        <Card>
-          <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            {search.trim().length > 0 ? messages.list.emptySearch : messages.list.empty}
-          </CardContent>
-        </Card>
+        <ListEmptyCard
+          message={search.trim().length > 0 ? messages.list.emptySearch : messages.list.empty}
+        />
       )}
 
       {!isPending && !isError && rows.length > 0 && (
@@ -146,34 +137,21 @@ export function CustomersList() {
       )}
 
       {!isPending && !isError && totalCount > 0 && (
-        <div className="flex flex-col items-center justify-between gap-2 sm:flex-row">
-          <p className="text-muted-foreground text-sm" data-testid="customers-count">
-            {messages.list.resultCount(rows.length, totalCount)}
-          </p>
-          <div className="flex items-center gap-3">
-            <p className="text-muted-foreground text-sm tabular-nums">
-              {messages.list.pageOf(currentPageNumber, totalPages)}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={isFirstPage}
-              data-testid="customers-prev"
-            >
-              {messages.list.previous}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => (isLastPage ? p : p + 1))}
-              disabled={isLastPage}
-              data-testid="customers-next"
-            >
-              {messages.list.next}
-            </Button>
-          </div>
-        </div>
+        <ListPagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          shownCount={rows.length}
+          onPrev={() => setPage((p) => Math.max(0, p - 1))}
+          onNext={() => setPage((p) => (isLastPage ? p : p + 1))}
+          messages={{
+            resultCount: messages.list.resultCount,
+            pageOf: messages.list.pageOf,
+            previous: messages.list.previous,
+            next: messages.list.next,
+          }}
+          testIds={{ count: 'customers-count', prev: 'customers-prev', next: 'customers-next' }}
+        />
       )}
 
       <CustomerFormDialog
