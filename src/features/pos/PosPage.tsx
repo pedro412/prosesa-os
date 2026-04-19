@@ -1,17 +1,29 @@
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { useItems } from '@/lib/queries/catalog'
 import { type Company, useCompanies } from '@/lib/queries/companies'
-import { type Customer } from '@/lib/queries/customers'
+import { type Customer, useCustomer } from '@/lib/queries/customers'
 import { buildSalesNoteTicketBytes } from '@/lib/print/build-ticket'
 import { fetchAndDitherLogo } from '@/lib/print/logo'
 import { printViaUSB } from '@/lib/print/usb-printer'
 import { type CreateSalesNotePaymentInput, useCreateSalesNote } from '@/lib/queries/sales-notes'
 import { computeLineTotal, computeTotals, type Totals } from '@/lib/tax'
+import { usePosDraftStore } from '@/store/pos-draft-store'
 import { usePosPreferencesStore } from '@/store/pos-preferences'
 import { usePrinterStore } from '@/store/printer-store'
 
@@ -25,7 +37,9 @@ import { PaymentDialog } from './PaymentDialog'
 import {
   canSubmit,
   initialPosFormState,
+  isDraftEmpty,
   posFormReducer,
+  sanitizeDraft,
   toCreateSalesNotePayload,
 } from './pos-form-state'
 import { PrinterStatusIndicator } from './PrinterStatusIndicator'
@@ -57,24 +71,80 @@ const AUTO_PRINT_DELAY_MS = 300
 // /pos — counter-mode POS (LIT-31). Composes the catalog search, line
 // editor, company + customer pickers, totals panel, and the charge CTA.
 // Submit lands a note in `status='pendiente'`; payment capture is LIT-33.
+// Draft persistence (LIT-87) layers on top: the reducer stays pure,
+// `useReducer` seeds from `pos-draft-store` on mount, and a sync effect
+// writes every tick back to localStorage.
 export function PosPage() {
-  const [state, dispatch] = useReducer(posFormReducer, undefined, initialPosFormState)
+  const [state, dispatch] = useReducer(
+    posFormReducer,
+    undefined,
+    // Zustand `persist` with sync storage rehydrates before first
+    // render, so reading `getState()` here lands the localStorage
+    // draft into useReducer's initial state without a flicker.
+    () => usePosDraftStore.getState().draft ?? initialPosFormState()
+  )
+  // Captured once per mount from the same source the reducer was
+  // seeded from — drives the "Venta restaurada" toast below. We can't
+  // derive it from `state` after mount because the sync effect will
+  // mutate `state` immediately.
+  const [initialDraftNonEmpty] = useState(
+    () => !isDraftEmpty(usePosDraftStore.getState().draft ?? initialPosFormState())
+  )
   const [freeFormOpen, setFreeFormOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
+  const [discardOpen, setDiscardOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null)
 
   const createMutation = useCreateSalesNote()
 
+  // Mirror every reducer tick into the persisted draft store. The
+  // store's setter auto-empties when the form carries no
+  // user-meaningful data (see `isDraftEmpty`), so post-Cobrar reset
+  // — which keeps `companyId` but empties everything else — clears
+  // localStorage without needing an explicit call site.
+  const setDraft = usePosDraftStore((s) => s.setDraft)
+  const clearDraft = usePosDraftStore((s) => s.clear)
+  useEffect(() => {
+    setDraft(state)
+  }, [state, setDraft])
+
   // We read companies here to resolve the selected company's IVA
   // config for the Totals panel. The <CompanySelect> component drives
   // its own fetch; both calls share the same TanStack Query cache so
   // it's a single network request.
-  const { data: companies } = useCompanies({ includeInactive: false })
+  const { data: companies, isPending: companiesPending } = useCompanies({
+    includeInactive: false,
+  })
   const selectedCompany: Company | null = useMemo(
     () => companies?.find((c) => c.id === state.companyId) ?? null,
     [companies, state.companyId]
   )
+
+  // Active catalog items — read here (not just inside `CatalogSearchPanel`)
+  // so the on-mount drift check can tell whether a persisted
+  // `catalogItemId` still resolves. Same cache as the search panel.
+  const { data: catalogItems, isPending: catalogPending } = useItems({})
+
+  // Rehydrate the `selectedCustomer` row when we restore a draft with
+  // a `customerId`. `CustomerSelect` needs the full `Customer` object
+  // to render a label, but the store only persists the id. Returns
+  // null (and `isFetched: true`, `isError: true`) when the customer
+  // was deleted — the sanitize effect below drops the stale ref.
+  const {
+    data: rehydratedCustomer,
+    isFetched: customerFetched,
+    isError: customerError,
+  } = useCustomer(state.customerId ?? undefined)
+  useEffect(() => {
+    if (!state.customerId) {
+      setSelectedCustomer(null)
+      return
+    }
+    if (rehydratedCustomer) {
+      setSelectedCustomer(rehydratedCustomer)
+    }
+  }, [state.customerId, rehydratedCustomer])
 
   // Sticky default: on first load with no selection, pre-fill from the
   // per-workstation store, or auto-pick when only one active company
@@ -96,6 +166,68 @@ export function PosPage() {
       dispatch({ type: 'setCompany', companyId: companies[0].id })
     }
   }, [companies, state.companyId, lastCompanyId])
+
+  // Drift check — fires once after all reference queries settle.
+  // Walks the rehydrated draft and nulls out any reference that no
+  // longer resolves (deactivated company, soft-deleted catalog item,
+  // deleted customer), keeping concept/price snapshots on lines
+  // intact. A single warning toast surfaces the drop so the operator
+  // isn't surprised by silently-missing data.
+  const driftCheckedRef = useRef(false)
+  useEffect(() => {
+    if (driftCheckedRef.current) return
+    if (companiesPending || catalogPending) return
+    if (state.customerId && !customerFetched && !customerError) return
+
+    const ctx = {
+      activeCompanyIds: new Set(companies?.map((c) => c.id) ?? []),
+      activeCatalogItemIds: new Set(catalogItems?.map((i) => i.id) ?? []),
+      customerValid: state.customerId === null || (!!rehydratedCustomer && !customerError),
+    }
+    const { state: sanitized, drifted } = sanitizeDraft(state, ctx)
+    driftCheckedRef.current = true
+    if (!drifted) return
+
+    if (sanitized.companyId !== state.companyId) {
+      dispatch({ type: 'setCompany', companyId: sanitized.companyId })
+    }
+    if (sanitized.customerId !== state.customerId) {
+      dispatch({ type: 'setCustomer', customerId: sanitized.customerId })
+      setSelectedCustomer(null)
+    }
+    sanitized.lines.forEach((line) => {
+      const before = state.lines.find((l) => l.id === line.id)
+      if (before && before.catalogItemId !== line.catalogItemId) {
+        dispatch({ type: 'updateLine', id: line.id, patch: { catalogItemId: line.catalogItemId } })
+      }
+    })
+    toast.warning(posMessages.draft.drifted)
+    // `state` is read as current via closure on each render — we gate
+    // the first real run on the queries settling. Re-runs bail on the
+    // ref guard. Excluding `state` from deps keeps the effect from
+    // thrashing while the sync effect writes every keystroke back to
+    // the store.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    companiesPending,
+    catalogPending,
+    customerFetched,
+    customerError,
+    companies,
+    catalogItems,
+    rehydratedCustomer,
+  ])
+
+  // One-shot "Venta restaurada." toast when we actually rehydrated a
+  // non-empty draft. Guarded by a ref so React 18 Strict Mode's
+  // double-invoke in dev doesn't fire the toast twice.
+  const restoredToastRef = useRef(false)
+  useEffect(() => {
+    if (!initialDraftNonEmpty) return
+    if (restoredToastRef.current) return
+    restoredToastRef.current = true
+    toast.info(posMessages.draft.restored)
+  }, [initialDraftNonEmpty])
 
   // Computed once so the totals panel and the payment dialog read from
   // the same source of truth (no drift between "total to cobrar" and
@@ -230,6 +362,20 @@ export function PosPage() {
   }, [completedSale])
 
   const blocked = state.companyId === null
+  const canDiscard = !isDraftEmpty(state)
+
+  function handleDiscardConfirm() {
+    clearDraft()
+    dispatch({ type: 'reset' })
+    // Reset keeps companyId, so we also wipe it to land on a
+    // genuinely clean form — matches operator intent when they
+    // explicitly said "descartar". Preferences sticky default will
+    // refill it on next render via the bootstrap effect above.
+    dispatch({ type: 'setCompany', companyId: null })
+    setSelectedCustomer(null)
+    setDiscardOpen(false)
+    toast.success(posMessages.draft.discard.success)
+  }
 
   return (
     <div className="space-y-6" data-testid="pos-page">
@@ -238,7 +384,20 @@ export function PosPage() {
           <h1 className="text-2xl font-semibold tracking-tight">{posMessages.page.title}</h1>
           <p className="text-muted-foreground text-sm">{posMessages.page.description}</p>
         </div>
-        <PrinterStatusIndicator />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setDiscardOpen(true)}
+            disabled={!canDiscard}
+            aria-label={posMessages.draft.discard.triggerAria}
+            data-testid="pos-discard-draft"
+          >
+            {posMessages.draft.discard.trigger}
+          </Button>
+          <PrinterStatusIndicator />
+        </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -362,6 +521,25 @@ export function PosPage() {
         submitting={createMutation.isPending}
         onConfirm={handleConfirmPayments}
       />
+
+      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{posMessages.draft.discard.title}</AlertDialogTitle>
+            <AlertDialogDescription>{posMessages.draft.discard.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{posMessages.draft.discard.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDiscardConfirm}
+              data-testid="pos-discard-confirm"
+            >
+              {posMessages.draft.discard.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

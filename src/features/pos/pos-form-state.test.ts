@@ -5,8 +5,10 @@ import type { CatalogItem } from '@/lib/queries/catalog'
 import {
   canSubmit,
   initialPosFormState,
+  isDraftEmpty,
   isLineValid,
   posFormReducer,
+  sanitizeDraft,
   toCreateSalesNotePayload,
 } from './pos-form-state'
 
@@ -269,6 +271,153 @@ describe('canSubmit', () => {
       patch: { discountType: 'percent', discountValue: 150 },
     })
     expect(canSubmit(broken)).toBe(false)
+  })
+})
+
+describe('isDraftEmpty', () => {
+  it('is true for a fresh form', () => {
+    expect(isDraftEmpty(initialPosFormState())).toBe(true)
+  })
+
+  it('is true when only companyId is set — post-Cobrar reset shape', () => {
+    const s = posFormReducer(initialPosFormState(), { type: 'setCompany', companyId: 'co-a' })
+    expect(isDraftEmpty(s)).toBe(true)
+  })
+
+  it('is false with a customer attached', () => {
+    const s = posFormReducer(initialPosFormState(), { type: 'setCustomer', customerId: 'cu-1' })
+    expect(isDraftEmpty(s)).toBe(false)
+  })
+
+  it('is false with non-whitespace notes', () => {
+    const s = posFormReducer(initialPosFormState(), { type: 'setNotes', notes: 'apartado' })
+    expect(isDraftEmpty(s)).toBe(false)
+  })
+
+  it('treats whitespace-only notes as empty', () => {
+    const s = posFormReducer(initialPosFormState(), { type: 'setNotes', notes: '   \n' })
+    expect(isDraftEmpty(s)).toBe(true)
+  })
+
+  it('is false with requiresInvoice toggled on', () => {
+    const s = posFormReducer(initialPosFormState(), {
+      type: 'setRequiresInvoice',
+      requiresInvoice: true,
+    })
+    expect(isDraftEmpty(s)).toBe(false)
+  })
+
+  it('is false with at least one line', () => {
+    const s = posFormReducer(initialPosFormState(), {
+      type: 'addCatalogLine',
+      item: makeItem(),
+    })
+    expect(isDraftEmpty(s)).toBe(false)
+  })
+})
+
+describe('sanitizeDraft', () => {
+  function seedFullDraft() {
+    let s = posFormReducer(initialPosFormState(), { type: 'setCompany', companyId: 'co-a' })
+    s = posFormReducer(s, { type: 'setCustomer', customerId: 'cu-1' })
+    s = posFormReducer(s, { type: 'setNotes', notes: 'frágil' })
+    s = posFormReducer(s, {
+      type: 'addCatalogLine',
+      item: makeItem({ id: 'item-1', name: 'Lona' }),
+    })
+    s = posFormReducer(s, {
+      type: 'addFreeFormLine',
+      line: { concept: 'Rotulación', unit: 'pieza', quantity: 1, unitPrice: 300 },
+    })
+    return s
+  }
+
+  it('passes through when every reference still resolves', () => {
+    const state = seedFullDraft()
+    const ctx = {
+      activeCompanyIds: new Set(['co-a', 'co-b']),
+      activeCatalogItemIds: new Set(['item-1']),
+      customerValid: true,
+    }
+    const result = sanitizeDraft(state, ctx)
+    expect(result.drifted).toBe(false)
+    expect(result.state.companyId).toBe('co-a')
+    expect(result.state.customerId).toBe('cu-1')
+    expect(result.state.lines[0].catalogItemId).toBe('item-1')
+  })
+
+  it('nulls a deactivated company and flags drift', () => {
+    const state = posFormReducer(initialPosFormState(), {
+      type: 'setCompany',
+      companyId: 'co-gone',
+    })
+    const result = sanitizeDraft(state, {
+      activeCompanyIds: new Set(['co-a']),
+      activeCatalogItemIds: new Set(),
+      customerValid: true,
+    })
+    expect(result.drifted).toBe(true)
+    expect(result.state.companyId).toBeNull()
+  })
+
+  it('nulls a deleted customer and flags drift', () => {
+    const state = posFormReducer(initialPosFormState(), {
+      type: 'setCustomer',
+      customerId: 'cu-gone',
+    })
+    const result = sanitizeDraft(state, {
+      activeCompanyIds: new Set(),
+      activeCatalogItemIds: new Set(),
+      customerValid: false,
+    })
+    expect(result.drifted).toBe(true)
+    expect(result.state.customerId).toBeNull()
+  })
+
+  it('nulls a deleted catalog item on a line but keeps the concept/price snapshot', () => {
+    const state = posFormReducer(initialPosFormState(), {
+      type: 'addCatalogLine',
+      item: makeItem({ id: 'item-gone', name: 'Lona descontinuada', price: 200 }),
+    })
+    const result = sanitizeDraft(state, {
+      activeCompanyIds: new Set(),
+      activeCatalogItemIds: new Set(),
+      customerValid: true,
+    })
+    expect(result.drifted).toBe(true)
+    expect(result.state.lines).toHaveLength(1)
+    expect(result.state.lines[0].catalogItemId).toBeNull()
+    expect(result.state.lines[0].concept).toBe('Lona descontinuada')
+    expect(result.state.lines[0].unitPrice).toBe(200)
+  })
+
+  it('leaves free-form lines (null catalogItemId) untouched', () => {
+    const state = posFormReducer(initialPosFormState(), {
+      type: 'addFreeFormLine',
+      line: { concept: 'Servicio', unit: 'pieza', quantity: 1, unitPrice: 50 },
+    })
+    const result = sanitizeDraft(state, {
+      activeCompanyIds: new Set(),
+      activeCatalogItemIds: new Set(),
+      customerValid: true,
+    })
+    expect(result.drifted).toBe(false)
+    expect(result.state.lines[0]).toEqual(state.lines[0])
+  })
+
+  it('reports drift across multiple concurrent issues in a single pass', () => {
+    const state = seedFullDraft()
+    const result = sanitizeDraft(state, {
+      activeCompanyIds: new Set(), // company gone
+      activeCatalogItemIds: new Set(), // catalog item gone
+      customerValid: false, // customer gone
+    })
+    expect(result.drifted).toBe(true)
+    expect(result.state.companyId).toBeNull()
+    expect(result.state.customerId).toBeNull()
+    expect(result.state.lines[0].catalogItemId).toBeNull()
+    expect(result.state.lines[0].concept).toBe('Lona') // snapshot preserved
+    expect(result.state.lines[1].catalogItemId).toBeNull() // free-form already null
   })
 })
 
