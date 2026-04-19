@@ -378,15 +378,18 @@ Cotizado → Anticipo recibido → En diseño → En producción → En instalac
 **MVP scope** (minimal — full CRM is a future module):
 
 - Name (or business name)
-- Phone / WhatsApp
-- Email
+- Phone / WhatsApp (required — LIT-80)
+- Email (optional)
 - RFC (optional)
 - Razón social (optional)
-- Régimen fiscal (optional)
+- Régimen fiscal (optional — SAT c_RegimenFiscal catalog)
 - Código postal fiscal (optional)
+- Dirección fiscal (optional — free-form address for CFDI 4.0 pre-invoice data)
+- Uso de CFDI (optional — SAT c_UsoCFDI catalog)
 - Internal notes
-- "Requiere factura" default flag
 - Created date
+
+**Fiscal-completeness rule**: for a customer to be billable, RFC + razón social + régimen fiscal + CP fiscal + dirección fiscal + uso CFDI must all be present. This is surfaced at read time by `customerFiscalStatus(customer)` — consumed by POS (warning banner when `Requiere factura` is on and data is incomplete) and by the manual facturación workbench (LIT-90). The DB itself keeps every fiscal column nullable so walk-ins can still be captured mid-conversation. Per-document `requiere_factura` lives on sales_notes / work_orders, not on customers (LIT-67).
 
 **Searchable** by name, phone, RFC. Quick-add from the POS without leaving the sales screen.
 

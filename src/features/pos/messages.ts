@@ -26,6 +26,7 @@ export const posMessages = {
     none: 'Sin cliente',
     noResults: 'Sin resultados. Usa "Nuevo" para crearlo.',
     loading: 'Buscando…',
+    editAria: 'Editar datos del cliente',
   },
   search: {
     label: 'Buscar producto o servicio',
@@ -159,6 +160,23 @@ export const posMessages = {
   },
   invoice: {
     label: 'Requiere factura',
+  },
+  fiscalWarning: {
+    noCustomerTitle: 'Requiere factura sin cliente',
+    noCustomerDescription:
+      'La nota saldrá con el RFC genérico XAXX010101000 y no podrá facturarse después.',
+    incompleteTitle: 'Faltan datos fiscales del cliente',
+    incompleteDescription: (fields: string) =>
+      `Para poder facturar esta venta, complete: ${fields}.`,
+    completeAction: 'Completar datos fiscales',
+    fieldLabels: {
+      rfc: 'RFC',
+      razon_social: 'Razón social',
+      regimen_fiscal: 'Régimen fiscal',
+      cp_fiscal: 'Código postal',
+      direccion_fiscal: 'Dirección fiscal',
+      uso_cfdi: 'Uso de CFDI',
+    },
   },
   print: {
     error: 'No se pudo imprimir el ticket.',

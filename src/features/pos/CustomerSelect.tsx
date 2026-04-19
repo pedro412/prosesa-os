@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,10 @@ import { posMessages } from './messages'
 interface CustomerSelectProps {
   value: Customer | null
   onChange: (customer: Customer | null) => void
+  // Opens the shared edit dialog mounted by `PosPage`. Lifted there so
+  // the fiscal-completeness warning banner can also trigger the same
+  // dialog without routing through this component.
+  onRequestEdit: () => void
 }
 
 // Optional customer picker for the POS form. Typeahead against the
@@ -21,7 +25,7 @@ interface CustomerSelectProps {
 // from LIT-25). Leaving the field blank is valid — the printed ticket
 // renders "Público en general" + the SAT generic RFC in that case
 // (CLAUDE.md §7, fallback lives in the doc-render code, not here).
-export function CustomerSelect({ value, onChange }: CustomerSelectProps) {
+export function CustomerSelect({ value, onChange, onRequestEdit }: CustomerSelectProps) {
   const [search, setSearch] = useState('')
   const [quickAddOpen, setQuickAddOpen] = useState(false)
 
@@ -65,7 +69,7 @@ export function CustomerSelect({ value, onChange }: CustomerSelectProps) {
       </div>
 
       {value ? (
-        <SelectedCustomer customer={value} />
+        <SelectedCustomer customer={value} onEdit={onRequestEdit} />
       ) : (
         <div className="flex gap-2">
           <Input
@@ -141,7 +145,7 @@ export function CustomerSelect({ value, onChange }: CustomerSelectProps) {
   )
 }
 
-function SelectedCustomer({ customer }: { customer: Customer }) {
+function SelectedCustomer({ customer, onEdit }: { customer: Customer; onEdit: () => void }) {
   const meta = [customer.rfc, customer.telefono, customer.email].filter(Boolean).join(' · ') || null
 
   return (
@@ -153,7 +157,17 @@ function SelectedCustomer({ customer }: { customer: Customer }) {
         <div className="truncate font-medium">{customer.nombre}</div>
         {meta && <div className="text-muted-foreground truncate text-xs">{meta}</div>}
       </div>
-      <X aria-hidden className="text-muted-foreground size-4 shrink-0" />
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="size-8 shrink-0 p-0"
+        onClick={onEdit}
+        aria-label={posMessages.customer.editAria}
+        data-testid="pos-customer-edit"
+      >
+        <Pencil aria-hidden className="size-4" />
+      </Button>
     </div>
   )
 }
