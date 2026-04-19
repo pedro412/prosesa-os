@@ -138,6 +138,8 @@ Two legal entities (razones sociales), one business, one workspace, one catalog,
 - Block the sale if no company is chosen in the form. A sale cannot be transferred between companies after creation.
 - Catalog, inventory, customers, work orders as data, and users are **shared** across razones sociales. None of these lists are filtered by company in the UI.
 - Reports on `sales_notes` / `work_orders` support per-company filtering and a consolidated view (they're the only tables carrying `company_id`).
+- **POS sticky default** (per-workstation, LIT-86): `src/store/pos-preferences.ts` remembers `lastCompanyId` in `localStorage` so the inline picker pre-fills with the last company the operator charged for. Deactivated companies are silently ignored — the picker falls back to empty if the stored id no longer resolves.
+- **POS draft restoration** (LIT-87): in-progress drafts persist in `src/store/pos-draft-store.ts` (`prosesa-pos-draft`, `version: 1`). On mount, `useReducer` seeds from the draft when one exists; otherwise the sticky-default effect above fills `companyId`. Drift (deactivated company, soft-deleted catalog item, deleted customer) is sanitized on mount via `sanitizeDraft` with a single warning toast — the form never disappears on the operator.
 
 ---
 
@@ -150,7 +152,8 @@ These are principles, not a frozen schema. Design actual tables from these.
 - Inventory movements are append-only. Types: `entrada`, `salida_por_orden`, `salida_manual`, `ajuste`. Each movement links to the work order if applicable and always to a user.
 - A sales note has 0..1 work order. A work order belongs to exactly one sales note and inherits `company_id` and `customer_id`.
 - Customers: attachment on sales notes / quotations / work orders is **optional** — a walk-in counter sale can mint a ticket with no customer at all. When a document needs to render an RFC and the attached customer has none (or no customer is attached), the printed output uses the SAT generic `XAXX010101000`. That fallback lives in the document-printing code (M3-1 sales_notes, M4-3 work_orders), **not** as a row in `customers`. The per-document `requiere_factura` flag lives on those same document tables, not on customers — the same person can want a factura on one order and skip it on the next.
-- Leave nullable FK space for things coming in Phase 2: `invoice_id` on sales notes, `purchase_order_id` on inventory entradas, `quotation_id` on sales notes.
+- **Customer fiscal fields** (LIT-89): `customers` stores `razon_social`, `rfc`, `regimen_fiscal` (SAT `c_RegimenFiscal`), `cp_fiscal`, `direccion_fiscal`, `uso_cfdi` (SAT `c_UsoCFDI`) — all nullable at the DB level. Walk-ins captured with just nombre + teléfono are valid. Fiscal **completeness** is a read-time concept: `src/features/customers/fiscal-completeness.ts#customerFiscalStatus(customer)` returns `no-customer | complete | incomplete` with the missing-field list; POS surfaces it as a non-blocking warning banner when `Requiere factura` is on, and LIT-90's Dana workbench will gate "Marcar como facturada" on the same helper. Do **not** require these fields at write time — the form would stop being usable mid-conversation.
+- Leave nullable FK space for things coming in Phase 2: `invoice_id` on sales notes, `purchase_order_id` on inventory entradas, `quotation_id` on sales notes. **Note** (per §17 direction change): `invoice_id` is kept as a hypothetical slot; actual manual invoice-number capture for Dana's Contpaqi flow lives on `sales_notes.external_invoice_number` (LIT-90), not on this FK.
 - **Work order line-item shape is an open research item** (see Linear ticket `R-1`): structured fields (dimensions, material, finishes) vs. freeform text vs. hybrid. Do not lock the schema without resolving this ticket — investigate how comparable shops model it and pick an approach that preserves future analytics.
 - **Audit log**: single `audit_logs` table + generic Postgres trigger attached to `sales_notes`, `work_orders`, `work_order_status_log`, `inventory_movements`, `pos_sales`. Schema per tech decisions:
   ```sql
@@ -298,7 +301,7 @@ Vercel staging (main branch) → Supabase Free (prosesa-os-staging) → Karina Q
 
 If the user asks for any of these, confirm they want it in Phase 1 before implementing — by default they are Phase 2+:
 
-- CFDI 4.0 invoicing (Facturapi)
+- **CFDI 4.0 invoicing (Facturapi) — deferred indefinitely.** Dana uses Contpaqi for issuing CFDIs and intends to keep that permanently; ProsesaOS is the pre-invoice data workbench + manual status ledger (LIT-90). Revisit only if that direction changes. The `sales_notes.invoice_id` FK slot (§7) stays reserved in case it ever does, but `sales_notes.external_invoice_number` is where Dana's manually-captured Contpaqi folios live.
 - WhatsApp Business API notifications
 - Formal quotations (PDF + sending)
 - Sales pipeline / funnel
@@ -326,3 +329,6 @@ Tracks changes to this agent contract only (rules, scope decisions, stack locks)
 | 2026-04-15 | Per-PR Vercel preview deployments disabled — only `staging` (main) and `production` environments. QA happens on the staging URL after merge.                                           |
 | 2026-04-15 | §6 multi-company: company choice is per-document (picker lives in sale/quotation form), not a global session. Shared catalog/inventory/customers/work-orders are unscoped in the UI.   |
 | 2026-04-16 | §7 customers: customer attachment on documents is optional; `XAXX010101000` fallback and `requiere_factura` live on sales_notes / work_orders / quotations, not on customers (LIT-67). |
+| 2026-04-19 | §6 multi-company: POS sticky default per workstation via `pos-preferences.lastCompanyId` + draft restoration via `pos-draft-store` (LIT-86 / LIT-87).                                  |
+| 2026-04-19 | §7 customers: added `direccion_fiscal` + `uso_cfdi` (both nullable); fiscal completeness is a read-time concept via `customerFiscalStatus` (LIT-89).                                   |
+| 2026-04-19 | §17 Facturapi deferred indefinitely given Dana's Contpaqi-permanent direction. ProsesaOS becomes the pre-invoice workbench + manual status ledger (LIT-90).                            |
