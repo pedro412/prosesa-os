@@ -404,6 +404,7 @@ export type Database = {
           dimensions: string | null
           discount_type: string
           discount_value: number
+          entregado: boolean
           id: string
           line_total: number
           material: string | null
@@ -413,6 +414,7 @@ export type Database = {
           unit: string
           unit_price: number
           updated_at: string
+          work_order_id: string | null
         }
         Insert: {
           catalog_item_id?: string | null
@@ -421,6 +423,7 @@ export type Database = {
           dimensions?: string | null
           discount_type?: string
           discount_value?: number
+          entregado?: boolean
           id?: string
           line_total: number
           material?: string | null
@@ -430,6 +433,7 @@ export type Database = {
           unit: string
           unit_price: number
           updated_at?: string
+          work_order_id?: string | null
         }
         Update: {
           catalog_item_id?: string | null
@@ -438,6 +442,7 @@ export type Database = {
           dimensions?: string | null
           discount_type?: string
           discount_value?: number
+          entregado?: boolean
           id?: string
           line_total?: number
           material?: string | null
@@ -447,6 +452,7 @@ export type Database = {
           unit?: string
           unit_price?: number
           updated_at?: string
+          work_order_id?: string | null
         }
         Relationships: [
           {
@@ -461,6 +467,13 @@ export type Database = {
             columns: ["sales_note_id"]
             isOneToOne: false
             referencedRelation: "sales_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_note_lines_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -486,7 +499,6 @@ export type Database = {
           total: number
           updated_at: string
           updated_by: string | null
-          work_order_id: string | null
         }
         Insert: {
           cancellation_reason?: string | null
@@ -508,7 +520,6 @@ export type Database = {
           total?: number
           updated_at?: string
           updated_by?: string | null
-          work_order_id?: string | null
         }
         Update: {
           cancellation_reason?: string | null
@@ -530,7 +541,6 @@ export type Database = {
           total?: number
           updated_at?: string
           updated_by?: string | null
-          work_order_id?: string | null
         }
         Relationships: [
           {
@@ -545,6 +555,88 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_orders: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          delivered_at: string | null
+          description: string | null
+          folio: string
+          id: string
+          priority: string
+          promised_at: string | null
+          sales_note_id: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          delivered_at?: string | null
+          description?: string | null
+          folio: string
+          id?: string
+          priority?: string
+          promised_at?: string | null
+          sales_note_id: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          delivered_at?: string | null
+          description?: string | null
+          folio?: string
+          id?: string
+          priority?: string
+          promised_at?: string | null
+          sales_note_id?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_sales_note_id_fkey"
+            columns: ["sales_note_id"]
+            isOneToOne: false
+            referencedRelation: "sales_notes"
             referencedColumns: ["id"]
           },
         ]
@@ -575,6 +667,10 @@ export type Database = {
         }[]
       }
       current_role: { Args: never; Returns: string }
+      generate_work_order_folio: {
+        Args: { p_sales_note_id: string }
+        Returns: string
+      }
       is_admin: { Args: never; Returns: boolean }
       list_admin_profiles: {
         Args: {
