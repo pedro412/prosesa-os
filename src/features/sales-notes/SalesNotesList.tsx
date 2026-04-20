@@ -326,7 +326,18 @@ export function SalesNotesList() {
 
       {!isPending && !isError && rows.length === 0 && (
         <ListEmptyCard
-          message={filtersApplied ? messages.list.emptyFiltered : messages.list.empty}
+          message={
+            // When the operator has a folio search active, surface the
+            // exact text we queried for + the canonical folio shape.
+            // Without this, "no results" reads as a system bug when
+            // the cause is usually a typo or a mis-padded folio
+            // (operator types `A-42` instead of `A-0042`).
+            (search.q ?? '').trim().length > 0
+              ? messages.list.emptyForQuery((search.q ?? '').trim())
+              : filtersApplied
+                ? messages.list.emptyFiltered
+                : messages.list.empty
+          }
         />
       )}
 
