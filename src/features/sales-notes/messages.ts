@@ -7,7 +7,7 @@ export const salesNotesMessages = {
   page: {
     title: 'Notas de venta',
     description: 'Historial de notas emitidas. Filtra, imprime y registra pagos.',
-    newButton: 'Nueva nota',
+    newButton: 'Nueva venta',
   },
   filters: {
     dateFromLabel: 'Desde',
@@ -30,6 +30,8 @@ export const salesNotesMessages = {
     loadError: 'No se pudieron cargar las notas.',
     empty: 'Aún no hay notas.',
     emptyFiltered: 'Sin resultados para los filtros aplicados.',
+    emptyForQuery: (q: string) =>
+      `Sin resultados para «${q}». Verifica que el folio incluya el prefijo y los ceros (ej. A-0042).`,
     resultCount: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
     pageOf: (current: number, total: number) => `Página ${current} de ${total}`,
     previous: 'Anterior',
