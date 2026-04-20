@@ -407,8 +407,13 @@ export function PosPage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Left column — build the sale */}
-        <div className="space-y-6 lg:min-w-0">
+        {/* Left column — build the sale. `@container` lets the line
+         *   editor swap between table and stacked-card layouts based
+         *   on this column's actual width, not the viewport. The
+         *   table needs ~1000px to fit; in the lg+ two-column layout
+         *   the right side locks at 360px, so the left column is
+         *   often narrower than the viewport. */}
+        <div className="@container space-y-6 lg:min-w-0">
           <CatalogSearchPanel
             disabled={blocked}
             onAdd={(item) => dispatch({ type: 'addCatalogLine', item })}
