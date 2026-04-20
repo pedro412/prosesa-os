@@ -415,6 +415,7 @@ function PaymentFormInner({
       {showCashHelper && (
         <div className="space-y-1.5" data-testid="pos-payment-cash-helper">
           <Label htmlFor="pay-cash-tendered">{posMessages.payments.cashTendered.label}</Label>
+          <p className="text-muted-foreground text-xs">{posMessages.payments.cashTendered.hint}</p>
           <MoneyInput
             id="pay-cash-tendered"
             value={tenderedValid ? tenderedNum : 0}

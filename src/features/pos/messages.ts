@@ -120,8 +120,8 @@ export const posMessages = {
     methods: PAYMENT_METHOD_LABELS,
     cardTypes: CARD_TYPE_LABELS,
     cashTendered: {
-      label: 'Efectivo recibido del cliente',
-      placeholder: 'Opcional — para calcular el cambio',
+      label: 'Efectivo entregado por el cliente',
+      hint: 'Opcional — solo para calcular el cambio.',
       change: (amount: string) => `Cambio a devolver: ${amount}`,
       insufficient: 'Menor al monto a aplicar.',
     },
