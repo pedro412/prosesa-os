@@ -281,6 +281,10 @@ export interface CreateSalesNoteLineInput {
   unit_price: number
   discount_type: LineDiscountType
   discount_value: number
+  // LIT-37: null → counter line, non-null → attached to the work order
+  // declared with this client id in CreateSalesNoteInput.work_orders.
+  // The RPC validates the reference and maps to the derived work_order_id.
+  work_order_client_id?: string | null
 }
 
 // One payment row the POS captures inline with the note (LIT-33).
@@ -293,6 +297,18 @@ export interface CreateSalesNotePaymentInput {
   amount: number
 }
 
+// LIT-37: a work order declared in the POS draft. client_id is a
+// draft-scoped identifier (e.g., 'order-1') used to wire lines to
+// their parent order; the server mints the real UUID + derived folio.
+export type WorkOrderPriority = 'normal' | 'urgente'
+
+export interface CreateSalesNoteWorkOrderInput {
+  client_id: string
+  description: string | null
+  priority: WorkOrderPriority
+  promised_at: string | null
+}
+
 export interface CreateSalesNoteInput {
   company_id: string
   customer_id: string | null
@@ -303,11 +319,21 @@ export interface CreateSalesNoteInput {
   // the note in status='pendiente'. LIT-33 supplies a non-empty array
   // for counter-mode sales so the note lands 'pagada' atomically.
   payments?: CreateSalesNotePaymentInput[]
+  // LIT-37: optional — a pure counter sale leaves this out or passes [].
+  // Orders with zero referencing lines are dropped server-side.
+  work_orders?: CreateSalesNoteWorkOrderInput[]
+}
+
+export interface CreatedWorkOrder {
+  id: string
+  folio: string
+  client_id: string
 }
 
 export interface CreateSalesNoteResult {
   id: string
   folio: string
+  work_orders: CreatedWorkOrder[]
 }
 
 // Wraps the SECURITY DEFINER `create_sales_note` RPC. Inserts the
@@ -329,13 +355,27 @@ export async function createSalesNote(input: CreateSalesNoteInput): Promise<Crea
   })
 
   if (error) throw error
-  // The PL/pgSQL `returns table(id uuid, folio text)` surfaces to the
-  // client as an array with one row.
+  // The PL/pgSQL `returns table(id uuid, folio text, work_orders jsonb)`
+  // surfaces to the client as an array with one row. The `work_orders`
+  // column is a jsonb array of { id, folio, client_id }.
   const row = Array.isArray(data) ? data[0] : data
   if (!row || typeof row !== 'object' || !('id' in row) || !('folio' in row)) {
     throw new Error('create_sales_note: unexpected empty response')
   }
-  return { id: String(row.id), folio: String(row.folio) }
+  const rawWorkOrders = (row as { work_orders?: unknown }).work_orders
+  const workOrders: CreatedWorkOrder[] = Array.isArray(rawWorkOrders)
+    ? rawWorkOrders
+        .filter(
+          (wo): wo is { id: unknown; folio: unknown; client_id: unknown } =>
+            !!wo && typeof wo === 'object' && 'id' in wo && 'folio' in wo && 'client_id' in wo
+        )
+        .map((wo) => ({
+          id: String(wo.id),
+          folio: String(wo.folio),
+          client_id: String(wo.client_id),
+        }))
+    : []
+  return { id: String(row.id), folio: String(row.folio), work_orders: workOrders }
 }
 
 // TanStack Query mutation: invalidates the sales-notes lists on success

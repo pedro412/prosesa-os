@@ -23,7 +23,11 @@ import { formatMXN } from '@/lib/format'
 import { buildSalesNoteTicketBytes } from '@/lib/print/build-ticket'
 import { fetchAndDitherLogo } from '@/lib/print/logo'
 import { printViaUSB } from '@/lib/print/usb-printer'
-import { type CreateSalesNotePaymentInput, useCreateSalesNote } from '@/lib/queries/sales-notes'
+import {
+  type CreatedWorkOrder,
+  type CreateSalesNotePaymentInput,
+  useCreateSalesNote,
+} from '@/lib/queries/sales-notes'
 import { computeLineTotal, computeTotals, roundMoney, type Totals } from '@/lib/tax'
 import { usePosDraftStore } from '@/store/pos-draft-store'
 import { usePosPreferencesStore } from '@/store/pos-preferences'
@@ -39,6 +43,8 @@ import { posMessages } from './messages'
 import { PaymentDialog } from './PaymentDialog'
 import {
   canSubmit,
+  createEmptyOrder,
+  hasReferencedOrder,
   initialPosFormState,
   isDraftEmpty,
   posFormReducer,
@@ -47,6 +53,7 @@ import {
 } from './pos-form-state'
 import { PrinterStatusIndicator } from './PrinterStatusIndicator'
 import { TotalsPanel } from './TotalsPanel'
+import { WorkOrderPanels } from './WorkOrderPanels'
 
 // Snapshot of everything a just-created sale needs to render a ticket.
 // Captured into state the moment the server resolves so the auto-print
@@ -67,6 +74,9 @@ interface CompletedSale {
   payments: CreateSalesNotePaymentInput[]
   company: Company
   customer: Customer | null
+  // LIT-37: CTAs rendered on the success screen, one per created work
+  // order. The detail route is a placeholder until LIT-42 lands.
+  workOrders: CreatedWorkOrder[]
 }
 
 const AUTO_PRINT_DELAY_MS = 300
@@ -102,6 +112,11 @@ export function PosPage() {
   const [customerEditOpen, setCustomerEditOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null)
+  // Sticky banner with per-order CTAs after a successful Cobrar. Split
+  // from `completedSale` (which drives the one-shot print) so the
+  // links remain visible on the form for subsequent sales until the
+  // operator starts typing.
+  const [lastCreatedWorkOrders, setLastCreatedWorkOrders] = useState<CreatedWorkOrder[]>([])
 
   const createMutation = useCreateSalesNote()
 
@@ -204,8 +219,18 @@ export function PosPage() {
     }
     sanitized.lines.forEach((line) => {
       const before = state.lines.find((l) => l.id === line.id)
-      if (before && before.catalogItemId !== line.catalogItemId) {
+      if (!before) return
+      if (before.catalogItemId !== line.catalogItemId) {
         dispatch({ type: 'updateLine', id: line.id, patch: { catalogItemId: line.catalogItemId } })
+      }
+      if (before.orderClientId !== line.orderClientId) {
+        dispatch({ type: 'setLineOrder', id: line.id, orderClientId: line.orderClientId })
+      }
+    })
+    // Remove any orders the sanitizer pruned (empty / orphan).
+    state.orders.forEach((order) => {
+      if (!sanitized.orders.find((o) => o.clientId === order.clientId)) {
+        dispatch({ type: 'removeOrder', clientId: order.clientId })
       }
     })
     toast.warning(posMessages.draft.drifted)
@@ -290,7 +315,9 @@ export function PosPage() {
         payments,
         company: selectedCompany,
         customer: selectedCustomer,
+        workOrders: result.work_orders,
       })
+      setLastCreatedWorkOrders(result.work_orders)
       // Keep the company, drop everything else.
       dispatch({ type: 'reset' })
       setSelectedCustomer(null)
@@ -381,9 +408,27 @@ export function PosPage() {
     // refill it on next render via the bootstrap effect above.
     dispatch({ type: 'setCompany', companyId: null })
     setSelectedCustomer(null)
+    setLastCreatedWorkOrders([])
     setDiscardOpen(false)
     toast.success(posMessages.draft.discard.success)
   }
+
+  function handleCreateOrderForLine(lineId: string) {
+    const order = createEmptyOrder()
+    dispatch({ type: 'addOrder', order })
+    dispatch({ type: 'setLineOrder', id: lineId, orderClientId: order.clientId })
+  }
+
+  // Clear the success banner the moment the operator starts a new sale
+  // (adds a line or picks a different company). Keeps the links visible
+  // for the window where the operator is likely to click them, without
+  // cluttering the next sale's form.
+  useEffect(() => {
+    if (lastCreatedWorkOrders.length === 0) return
+    if (state.lines.length > 0) {
+      setLastCreatedWorkOrders([])
+    }
+  }, [state.lines.length, lastCreatedWorkOrders.length])
 
   return (
     <div className="space-y-6" data-testid="pos-page">
@@ -443,11 +488,57 @@ export function PosPage() {
           )}
 
           {!blocked && (
-            <LineItemsTable
-              lines={state.lines}
-              onUpdate={(id, patch) => dispatch({ type: 'updateLine', id, patch })}
-              onRemove={(id) => dispatch({ type: 'removeLine', id })}
-            />
+            <>
+              <WorkOrderPanels
+                orders={state.orders}
+                lines={state.lines}
+                onAddOrder={() => dispatch({ type: 'addOrder', order: createEmptyOrder() })}
+                onRemoveOrder={(clientId) => dispatch({ type: 'removeOrder', clientId })}
+                onUpdateOrder={(clientId, patch) =>
+                  dispatch({ type: 'updateOrder', clientId, patch })
+                }
+              />
+              <LineItemsTable
+                lines={state.lines}
+                orders={state.orders}
+                onUpdate={(id, patch) => dispatch({ type: 'updateLine', id, patch })}
+                onRemove={(id) => dispatch({ type: 'removeLine', id })}
+                onChangeOrder={(id, orderClientId) =>
+                  dispatch({ type: 'setLineOrder', id, orderClientId })
+                }
+                onCreateOrderFor={handleCreateOrderForLine}
+              />
+            </>
+          )}
+
+          {lastCreatedWorkOrders.length > 0 && (
+            <div
+              className="rounded-md border bg-muted/40 p-3 space-y-2"
+              data-testid="pos-last-work-orders"
+            >
+              <p className="text-xs font-medium">{posMessages.submit.successHint}</p>
+              <ul className="flex flex-wrap gap-2">
+                {lastCreatedWorkOrders.map((wo) => (
+                  <li key={wo.id}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      data-testid={`pos-work-order-link-${wo.id}`}
+                    >
+                      {/* Detail route will be wired in LIT-42. Using an
+                       * anchor keeps the CTA present even before the
+                       * route exists; the href is a stable pattern
+                       * the router can later intercept. */}
+                      <a href={`/ordenes-de-trabajo/${wo.id}`}>
+                        {posMessages.submit.workOrderLink(wo.folio)}
+                      </a>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
 
@@ -523,6 +614,19 @@ export function PosPage() {
             state.lines.length === 0 && (
               <p className="text-muted-foreground text-center text-xs">
                 {posMessages.submit.disabledReason}
+              </p>
+            )}
+          {!submittable &&
+            !createMutation.isPending &&
+            state.companyId &&
+            state.lines.length > 0 &&
+            hasReferencedOrder(state) &&
+            !state.customerId && (
+              <p
+                className="text-center text-xs text-destructive"
+                data-testid="pos-customer-required-for-order"
+              >
+                {posMessages.submit.customerRequiredForOrder}
               </p>
             )}
         </div>

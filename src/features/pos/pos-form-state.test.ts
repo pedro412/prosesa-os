@@ -209,6 +209,7 @@ describe('isLineValid', () => {
     unitPrice: 100,
     discountType: 'none' as const,
     discountValue: 0,
+    orderClientId: null,
   }
 
   it('accepts a well-formed line', () => {
@@ -465,8 +466,10 @@ describe('toCreateSalesNotePayload', () => {
           unit_price: 150,
           discount_type: 'none',
           discount_value: 0,
+          work_order_client_id: null,
         },
       ],
+      work_orders: [],
     })
   })
 })

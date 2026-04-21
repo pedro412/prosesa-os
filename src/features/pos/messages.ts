@@ -70,7 +70,7 @@ export const posMessages = {
     },
   },
   table: {
-    empty: 'Aún no hay partidas. Agrega un producto o un concepto libre.',
+    empty: 'Aún no hay conceptos. Agrega un producto o un concepto libre.',
     columns: {
       concept: 'Concepto',
       unit: 'Unidad',
@@ -78,14 +78,49 @@ export const posMessages = {
       unitPrice: 'Precio',
       discount: 'Descuento',
       lineTotal: 'Importe',
+      destination: 'Destino',
       actions: '',
     },
-    removeAriaLabel: 'Eliminar partida',
+    removeAriaLabel: 'Eliminar concepto',
     discountTypes: {
       none: 'Sin descuento',
       percent: 'Porcentaje',
       fixed: 'Monto fijo',
     },
+    destination: {
+      counter: 'Mostrador',
+      createNew: '+ Nueva orden',
+      order: (index: number) => `Orden ${index}`,
+      ariaLabel: 'Asignar concepto a orden',
+    },
+  },
+  orders: {
+    sectionTitle: 'Órdenes de trabajo',
+    addButton: 'Nueva orden',
+    addButtonHint:
+      'Agrupa conceptos en una orden de trabajo cuando la venta requiere producción o entrega posterior.',
+    empty: 'Aún no hay órdenes. Usa "Nueva orden" o cambia el destino de un concepto.',
+    cardHeading: (index: number) => `Orden ${index}`,
+    removeAriaLabel: 'Eliminar orden',
+    removeConfirm: {
+      title: '¿Eliminar la orden?',
+      description:
+        'Los conceptos asignados a esta orden volverán a Mostrador. No se borran los conceptos.',
+      confirm: 'Eliminar orden',
+      cancel: 'Cancelar',
+    },
+    fields: {
+      description: 'Descripción',
+      descriptionPlaceholder: 'Ej. Rotulación de camioneta — entrega 30 abr',
+      priority: 'Prioridad',
+      priorityOptions: {
+        normal: 'Normal',
+        urgente: 'Urgente',
+      },
+      promisedAt: 'Fecha prometida',
+      promisedAtClear: 'Sin fecha',
+    },
+    lineCount: (n: number) => (n === 1 ? '1 concepto' : `${n} conceptos`),
   },
   totals: {
     subtotal: 'Subtotal',
@@ -98,13 +133,17 @@ export const posMessages = {
   submit: {
     cta: 'Cobrar',
     sending: 'Guardando…',
-    disabledReason: 'Agrega al menos una partida para cobrar.',
+    disabledReason: 'Agrega al menos un concepto para cobrar.',
+    customerRequiredForOrder:
+      'Asigna un cliente. Las órdenes de trabajo necesitan un contacto para dar seguimiento.',
     success: (folio: string) => `Nota ${folio} creada.`,
     successHint: 'Nota pagada y registrada.',
     genericError: 'No se pudo generar la nota. Intenta de nuevo.',
     notAuthenticated: 'Tu sesión expiró. Vuelve a iniciar sesión.',
     companyInactive: 'La empresa seleccionada ya no está activa.',
     successHintAnticipo: (saldo: string) => `Anticipo registrado. Saldo pendiente: ${saldo}.`,
+    workOrderCreated: (folio: string) => `Orden ${folio}`,
+    workOrderLink: (folio: string) => `Ver orden ${folio}`,
   },
   payments: {
     title: 'Cobrar',

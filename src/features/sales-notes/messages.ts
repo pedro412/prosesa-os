@@ -65,7 +65,7 @@ export const salesNotesMessages = {
     titlePrefix: 'Nota ',
     sections: {
       encabezado: 'Encabezado',
-      lineas: 'Partidas',
+      lineas: 'Conceptos',
       pagos: 'Pagos',
       totales: 'Totales',
     },
@@ -96,7 +96,7 @@ export const salesNotesMessages = {
       requiresInvoice: 'Requiere factura',
     },
     empty: {
-      lines: 'Sin partidas.',
+      lines: 'Sin conceptos.',
       payments: 'Aún no hay pagos registrados.',
     },
     loading: 'Cargando nota…',
