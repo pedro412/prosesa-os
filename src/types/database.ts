@@ -565,6 +565,44 @@ export type Database = {
           },
         ]
       }
+      work_order_status_log: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          id: string
+          new_status: string
+          note: string | null
+          old_status: string | null
+          work_order_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          id?: string
+          new_status: string
+          note?: string | null
+          old_status?: string | null
+          work_order_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          new_status?: string
+          note?: string | null
+          old_status?: string | null
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_status_log_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_orders: {
         Row: {
           cancellation_reason: string | null
@@ -707,6 +745,34 @@ export type Database = {
       update_own_full_name: {
         Args: { p_full_name: string }
         Returns: undefined
+      }
+      update_work_order_status: {
+        Args: { p_new_status: string; p_note?: string; p_wo_id: string }
+        Returns: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          delivered_at: string | null
+          description: string | null
+          folio: string
+          id: string
+          priority: string
+          promised_at: string | null
+          sales_note_id: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "work_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
