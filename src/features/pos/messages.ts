@@ -104,6 +104,7 @@ export const posMessages = {
     genericError: 'No se pudo generar la nota. Intenta de nuevo.',
     notAuthenticated: 'Tu sesión expiró. Vuelve a iniciar sesión.',
     companyInactive: 'La empresa seleccionada ya no está activa.',
+    successHintAnticipo: (saldo: string) => `Anticipo registrado. Saldo pendiente: ${saldo}.`,
   },
   payments: {
     title: 'Cobrar',
@@ -132,12 +133,21 @@ export const posMessages = {
       covered: 'Pago cubierto',
       over: (amount: string) => `Sobra: ${amount}`,
     },
+    anticipo: {
+      toggleLabel: 'Registrar como anticipo',
+      toggleHint: 'Cobra una parte ahora y deja un saldo pendiente.',
+      captured: (amount: string) => `Anticipo: ${amount}`,
+      saldoPendiente: (amount: string) => `Saldo pendiente: ${amount}`,
+      default30Hint: 'Sugerencia: 30% del total.',
+    },
     submit: 'Cobrar y confirmar',
     cancel: 'Cancelar',
     errors: {
       amountInvalid: 'El monto debe ser mayor a 0.',
       cardTypeRequired: 'Elige crédito o débito.',
       totalNotCovered: 'La suma de pagos no cubre el total.',
+      anticipoExceedsTotal: 'El anticipo no puede exceder el total.',
+      anticipoMustBePositive: 'El anticipo debe ser mayor a 0.',
     },
   },
   notes: {

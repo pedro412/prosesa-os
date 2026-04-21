@@ -19,11 +19,12 @@ import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { useItems } from '@/lib/queries/catalog'
 import { type Company, useCompanies } from '@/lib/queries/companies'
 import { type Customer, useCustomer } from '@/lib/queries/customers'
+import { formatMXN } from '@/lib/format'
 import { buildSalesNoteTicketBytes } from '@/lib/print/build-ticket'
 import { fetchAndDitherLogo } from '@/lib/print/logo'
 import { printViaUSB } from '@/lib/print/usb-printer'
 import { type CreateSalesNotePaymentInput, useCreateSalesNote } from '@/lib/queries/sales-notes'
-import { computeLineTotal, computeTotals, type Totals } from '@/lib/tax'
+import { computeLineTotal, computeTotals, roundMoney, type Totals } from '@/lib/tax'
 import { usePosDraftStore } from '@/store/pos-draft-store'
 import { usePosPreferencesStore } from '@/store/pos-preferences'
 import { usePrinterStore } from '@/store/printer-store'
@@ -259,8 +260,13 @@ export function PosPage() {
     try {
       const payload = { ...toCreateSalesNotePayload(state), payments }
       const result = await createMutation.mutateAsync(payload)
+      const paidSum = roundMoney(payments.reduce((acc, p) => acc + p.amount, 0))
+      const saldo = roundMoney(Math.max(0, totals.total - paidSum))
+      const isAnticipo = saldo > 0
       toast.success(posMessages.submit.success(result.folio), {
-        description: posMessages.submit.successHint,
+        description: isAnticipo
+          ? posMessages.submit.successHintAnticipo(formatMXN(saldo))
+          : posMessages.submit.successHint,
       })
       // Snapshot everything the ticket needs BEFORE the reducer reset
       // clears state. The auto-print effect drains this queue.
@@ -299,10 +305,6 @@ export function PosPage() {
         toast.error(posMessages.submit.notAuthenticated)
       } else if (message.includes('unknown or inactive company')) {
         toast.error(posMessages.submit.companyInactive)
-      } else if (message.includes('do not cover total')) {
-        // Defensive: the dialog already blocks this path client-side,
-        // but the server is the source of truth.
-        toast.error(posMessages.payments.errors.totalNotCovered)
       } else {
         toast.error(posMessages.submit.genericError)
       }

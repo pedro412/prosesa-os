@@ -196,7 +196,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are `YYY
 
 ### [Unreleased]
 
-_(empty — M4 Project sales & work orders opens next; blocked on `R-1` work-order line-item shape research per `CLAUDE.md` §7.)_
+#### Added
+
+- **LIT-97** — POS accepts partial payments (anticipo) on counter sales. New "Registrar como anticipo" toggle in the Cobrar modal with 30%-of-total default seed; thermal ticket prints a `VENTA CON ANTICIPO` banner and a `Saldo pendiente` row when the nota is committed with `status='abonada'`. Server-side RPC relaxed to accept `0 < sum(payments) < total`; the existing `payments_recompute_note_status` trigger still derives `abonada` vs `pagada`.
 
 ### 2026-04-19 — M3: Counter sales POS
 
