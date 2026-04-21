@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { formatMXN } from '@/lib/format'
 import type { CardType, PaymentMethod } from '@/lib/queries/payments'
 import type { CreateSalesNotePaymentInput } from '@/lib/queries/sales-notes'
@@ -127,6 +128,12 @@ function PaymentFormInner({
   const [rowErrors, setRowErrors] = useState<Record<string, RowErrors>>({})
   const [cashTendered, setCashTendered] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
+  // Anticipo toggle (LIT-97). When on, we relax the "sum >= total"
+  // gate and seed a 30% suggestion. `rowsDirty` preserves operator
+  // edits when they flip the toggle after typing — flipping never
+  // clobbers a touched amount.
+  const [isAnticipo, setIsAnticipo] = useState(false)
+  const [rowsDirty, setRowsDirty] = useState(false)
 
   const parsedRows = useMemo(
     () =>
@@ -152,14 +159,19 @@ function PaymentFormInner({
   )
 
   const remaining = roundMoney(total - sum)
+  const saldo = roundMoney(Math.max(0, total - sum))
   const covered = sum >= total && total > 0
+  // For anticipo: must be a positive partial payment that does not
+  // exceed the total. `covered` path stays the exact-pay contract.
+  const anticipoValid = sum > 0 && sum <= total && total > 0
+  const anticipoExceeds = isAnticipo && sum > total
   const rowsShapeValid = parsedRows.every(
     (row) =>
       Number.isFinite(row.parsedAmount) &&
       row.parsedAmount > 0 &&
       (row.method === 'tarjeta' ? row.cardType !== null : row.cardType === null)
   )
-  const canSubmit = !submitting && covered && rowsShapeValid
+  const canSubmit = !submitting && rowsShapeValid && (isAnticipo ? anticipoValid : covered)
 
   function updateRow(id: string, patch: Partial<PaymentRow>) {
     setRows((prev) =>
@@ -183,11 +195,13 @@ function PaymentFormInner({
       return copy
     })
     setSubmitError(null)
+    setRowsDirty(true)
   }
 
   function addRow() {
     setRows((prev) => [...prev, newRow({ amount: remaining > 0 ? remaining.toFixed(2) : '' })])
     setSubmitError(null)
+    setRowsDirty(true)
   }
 
   function removeRow(id: string) {
@@ -199,6 +213,18 @@ function PaymentFormInner({
       return copy
     })
     setSubmitError(null)
+    setRowsDirty(true)
+  }
+
+  function handleAnticipoToggle(next: boolean) {
+    setIsAnticipo(next)
+    setSubmitError(null)
+    // Flipping the toggle only reseeds the amount when the operator
+    // hasn't touched the rows yet. Once they've typed anything, we
+    // respect their edits — the toggle only changes the gating rule.
+    if (rowsDirty) return
+    const seed = next ? roundMoney(total * 0.3) : total
+    setRows([newRow({ amount: seed > 0 ? seed.toFixed(2) : '' })])
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -239,7 +265,16 @@ function PaymentFormInner({
       return
     }
 
-    if (!covered) {
+    if (isAnticipo) {
+      if (sum <= 0) {
+        setSubmitError(posMessages.payments.errors.anticipoMustBePositive)
+        return
+      }
+      if (sum > total) {
+        setSubmitError(posMessages.payments.errors.anticipoExceedsTotal)
+        return
+      }
+    } else if (!covered) {
       setSubmitError(posMessages.payments.errors.totalNotCovered)
       return
     }
@@ -253,7 +288,11 @@ function PaymentFormInner({
   // this dialog's responsibility in that case.
   const singleEfectivo = rows.length === 1 && rows[0].method === 'efectivo'
   const efectivoRow = singleEfectivo ? parsedRows[0] : null
-  const showCashHelper = singleEfectivo && covered
+  // Cash helper surfaces on any fully-committed single-efectivo row,
+  // whether that's a full sale or an anticipo. Rule per AC §6: tendered
+  // cash must be ≥ the amount being applied — today against total, now
+  // against the (possibly partial) amount captured.
+  const showCashHelper = singleEfectivo && (isAnticipo ? anticipoValid : covered)
   const tenderedNum = Number(cashTendered)
   const tenderedValid = cashTendered.trim() !== '' && Number.isFinite(tenderedNum)
   const tenderedInsufficient =
@@ -265,6 +304,25 @@ function PaymentFormInner({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" data-testid="pos-payment-form">
+      <div className="bg-muted/30 flex items-start justify-between gap-4 rounded-md border px-3 py-2">
+        <div className="space-y-0.5">
+          <Label htmlFor="pos-payment-anticipo-toggle" className="text-sm font-medium">
+            {posMessages.payments.anticipo.toggleLabel}
+          </Label>
+          <p className="text-muted-foreground text-xs">
+            {isAnticipo
+              ? posMessages.payments.anticipo.default30Hint
+              : posMessages.payments.anticipo.toggleHint}
+          </p>
+        </div>
+        <Switch
+          id="pos-payment-anticipo-toggle"
+          checked={isAnticipo}
+          onCheckedChange={handleAnticipoToggle}
+          disabled={submitting || total <= 0}
+          data-testid="pos-payment-anticipo-toggle"
+        />
+      </div>
       <div className="space-y-3">
         {parsedRows.map((row, idx) => {
           const err = rowErrors[row.id] ?? {}
@@ -395,21 +453,44 @@ function PaymentFormInner({
           <span className="text-muted-foreground">{posMessages.payments.balance.sum}</span>
           <span className="tabular-nums">{formatMXN(sum)}</span>
         </div>
-        <div className="pt-1">
-          {remaining > 0 ? (
-            <p className="text-destructive text-xs">
-              {posMessages.payments.balance.remaining(formatMXN(remaining))}
-            </p>
-          ) : remaining === 0 ? (
-            <p className="text-primary text-xs font-medium">
-              {posMessages.payments.balance.covered}
-            </p>
-          ) : (
-            <p className="text-muted-foreground text-xs">
-              {posMessages.payments.balance.over(formatMXN(Math.abs(remaining)))}
-            </p>
-          )}
-        </div>
+        {isAnticipo ? (
+          <div className="space-y-1 pt-1">
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="text-muted-foreground text-xs">
+                {posMessages.payments.anticipo.captured(formatMXN(sum))}
+              </span>
+              <span className="text-primary text-xs font-medium tabular-nums">
+                {posMessages.payments.anticipo.saldoPendiente(formatMXN(saldo))}
+              </span>
+            </div>
+            {anticipoExceeds && (
+              <p className="text-destructive text-xs">
+                {posMessages.payments.errors.anticipoExceedsTotal}
+              </p>
+            )}
+            {!anticipoExceeds && sum <= 0 && (
+              <p className="text-muted-foreground text-xs">
+                {posMessages.payments.errors.anticipoMustBePositive}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="pt-1">
+            {remaining > 0 ? (
+              <p className="text-destructive text-xs">
+                {posMessages.payments.balance.remaining(formatMXN(remaining))}
+              </p>
+            ) : remaining === 0 ? (
+              <p className="text-primary text-xs font-medium">
+                {posMessages.payments.balance.covered}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                {posMessages.payments.balance.over(formatMXN(Math.abs(remaining)))}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {showCashHelper && (

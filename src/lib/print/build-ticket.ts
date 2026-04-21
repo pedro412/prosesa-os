@@ -100,6 +100,14 @@ export function buildSalesNoteTicketBytes(input: TicketBuildInput): Uint8Array {
   const ratePct = formatIvaRate(note.iva_rate_snapshot)
   const fecha = formatTicketDate(note.created_at)
   const clienteLine = customer?.nombre.trim() || 'Público en general'
+  // Anticipo detection (LIT-97): when the captured payments don't
+  // cover the note total, the ticket prints an "ANTICIPO" banner and
+  // a `Saldo pendiente` line so the customer walks out with paper
+  // that matches the server-side `status='abonada'`. Derived here —
+  // no new input field required.
+  const paidSum = payments.reduce((acc, p) => acc + p.amount, 0)
+  const saldo = Math.max(0, Math.round((note.total - paidSum) * 100) / 100)
+  const isAnticipo = paidSum > 0 && saldo > 0
 
   const parts: Uint8Array[] = [C.INIT]
 
@@ -161,6 +169,15 @@ export function buildSalesNoteTicketBytes(input: TicketBuildInput): Uint8Array {
   parts.push(row(padRight(`TOTAL:`, money(note.total), charWidth)))
   parts.push(C.BOLD_OFF)
 
+  // Anticipo banner: only on partial payments. Fully-paid tickets
+  // stay unchanged (no noise) — absence of the banner is itself the
+  // "liquidada" signal.
+  if (isAnticipo) {
+    parts.push(C.ALIGN_C, C.BOLD_ON)
+    parts.push(row(centerStr('** VENTA CON ANTICIPO **', charWidth)))
+    parts.push(C.BOLD_OFF, C.ALIGN_L)
+  }
+
   // ─── Payments ───────────────────────────────────────────────────
   parts.push(hr(charWidth))
   for (const p of payments) {
@@ -172,6 +189,18 @@ export function buildSalesNoteTicketBytes(input: TicketBuildInput): Uint8Array {
     parts.push(
       row(label.padEnd(labelWidth).slice(0, labelWidth) + amountStr.padStart(amountStr.length))
     )
+  }
+  // Pagado / Saldo summary rows follow the payment list so the
+  // ticket ends with a clean "so where does this leave us" block.
+  // Printed on every ticket with ≥ 1 payment (fully paid shows only
+  // `Pagado`; anticipo shows both and the saldo is bold).
+  if (payments.length > 0) {
+    parts.push(row(padRight(`Pagado:`, money(paidSum), charWidth)))
+    if (isAnticipo) {
+      parts.push(C.BOLD_ON)
+      parts.push(row(padRight(`Saldo pendiente:`, money(saldo), charWidth)))
+      parts.push(C.BOLD_OFF)
+    }
   }
 
   // ─── Footer ─────────────────────────────────────────────────────
