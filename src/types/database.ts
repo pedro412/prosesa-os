@@ -493,7 +493,9 @@ export type Database = {
           iva_inclusive_snapshot: boolean
           iva_rate_snapshot: number
           notes: string | null
+          paid_sum: number
           requires_invoice: boolean
+          saldo_pendiente: number | null
           status: string
           subtotal: number
           total: number
@@ -514,7 +516,9 @@ export type Database = {
           iva_inclusive_snapshot: boolean
           iva_rate_snapshot: number
           notes?: string | null
+          paid_sum?: number
           requires_invoice?: boolean
+          saldo_pendiente?: number | null
           status?: string
           subtotal?: number
           total?: number
@@ -535,7 +539,9 @@ export type Database = {
           iva_inclusive_snapshot?: boolean
           iva_rate_snapshot?: number
           notes?: string | null
+          paid_sum?: number
           requires_invoice?: boolean
+          saldo_pendiente?: number | null
           status?: string
           subtotal?: number
           total?: number
@@ -567,7 +573,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
-          customer_id: string | null
+          customer_id: string
           delivered_at: string | null
           description: string | null
           folio: string
@@ -586,7 +592,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by?: string | null
-          customer_id?: string | null
+          customer_id: string
           delivered_at?: string | null
           description?: string | null
           folio: string
@@ -605,7 +611,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
-          customer_id?: string | null
+          customer_id?: string
           delivered_at?: string | null
           description?: string | null
           folio?: string
