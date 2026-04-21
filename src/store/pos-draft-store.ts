@@ -7,8 +7,12 @@ import { isDraftEmpty, type PosFormState } from '@/features/pos/pos-form-state'
 // navigation, refresh, or tab-close doesn't wipe the operator's work.
 // Per-workstation (localStorage); cross-device sync is Phase 2+.
 //
-// `version: 1` is the migration hook for the first time `PosFormState`
-// or `PosLine` changes shape in a breaking way.
+// `version` is the migration hook for breaking shape changes to
+// `PosFormState` / `PosLine`. Current versions:
+//   1 — initial (LIT-87)
+//   2 — LIT-37: adds `orders: PosOrder[]` and `orderClientId` on each
+//       line. v1 drafts migrate by seeding an empty orders array and
+//       null `orderClientId` on existing lines (all counter lines).
 //
 // Auto-empty: `setDraft` stores `null` when the incoming state carries
 // no user-meaningful data (see `isDraftEmpty`). This is how post-Cobrar
@@ -31,8 +35,29 @@ export const usePosDraftStore = create<PosDraftStoreState>()(
     }),
     {
       name: 'prosesa-pos-draft',
-      version: 1,
+      version: 2,
       partialize: (state) => ({ draft: state.draft }),
+      migrate: (persisted, version) => {
+        if (!persisted || typeof persisted !== 'object') return persisted
+        const state = persisted as { draft: unknown }
+        if (version < 2 && state.draft && typeof state.draft === 'object') {
+          const draft = state.draft as PosFormState & { orders?: unknown }
+          return {
+            draft: {
+              ...draft,
+              orders: Array.isArray(draft.orders) ? draft.orders : [],
+              lines: (draft.lines ?? []).map((line) => ({
+                ...line,
+                orderClientId:
+                  typeof (line as { orderClientId?: unknown }).orderClientId === 'string'
+                    ? (line as { orderClientId: string }).orderClientId
+                    : null,
+              })),
+            },
+          }
+        }
+        return persisted
+      },
     }
   )
 )

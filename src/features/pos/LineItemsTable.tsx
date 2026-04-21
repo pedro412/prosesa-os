@@ -23,12 +23,27 @@ import { formatMXN } from '@/lib/format'
 import { computeLineTotal, type LineDiscountType } from '@/lib/tax'
 
 import { posMessages } from './messages'
-import type { PosLine } from './pos-form-state'
+import type { PosLine, PosOrder } from './pos-form-state'
+
+// Sentinel used by the destination dropdown for "create a new order and
+// attach this line to it" in a single click. Picked so it can't collide
+// with a real order clientId (which start with 'order-').
+const CREATE_NEW_DESTINATION = '__create-new__'
+// Sentinel for Mostrador (null orderClientId). Radix Select disallows
+// empty-string values, so we round-trip null through this token.
+const COUNTER_DESTINATION = '__counter__'
 
 interface LineItemsTableProps {
   lines: PosLine[]
+  orders: PosOrder[]
   onUpdate: (id: string, patch: Partial<PosLine>) => void
   onRemove: (id: string) => void
+  // LIT-37: set the line's order. When `orderClientId` is null → Mostrador.
+  onChangeOrder: (id: string, orderClientId: string | null) => void
+  // Called when the operator picks "+ Nueva orden" in a line's
+  // destination dropdown. Must atomically create a new order and attach
+  // this line to it so we don't render a frame with a stale selector.
+  onCreateOrderFor: (lineId: string) => void
 }
 
 // Parses a loosely-typed input into a safe number. Empty / invalid →
@@ -147,7 +162,68 @@ function RemoveButton({ id, onRemove }: { id: string; onRemove: (id: string) => 
   )
 }
 
-export function LineItemsTable({ lines, onUpdate, onRemove }: LineItemsTableProps) {
+interface DestinationSelectProps {
+  line: PosLine
+  orders: PosOrder[]
+  onChangeOrder: (id: string, orderClientId: string | null) => void
+  onCreateOrderFor: (lineId: string) => void
+  className?: string
+}
+
+function DestinationSelect({
+  line,
+  orders,
+  onChangeOrder,
+  onCreateOrderFor,
+  className,
+}: DestinationSelectProps) {
+  const current = line.orderClientId ?? COUNTER_DESTINATION
+  return (
+    <Select
+      value={current}
+      onValueChange={(next) => {
+        if (next === CREATE_NEW_DESTINATION) {
+          onCreateOrderFor(line.id)
+          return
+        }
+        if (next === COUNTER_DESTINATION) {
+          onChangeOrder(line.id, null)
+          return
+        }
+        onChangeOrder(line.id, next)
+      }}
+    >
+      <SelectTrigger
+        size="sm"
+        className={className ?? 'h-8 w-full'}
+        aria-label={posMessages.table.destination.ariaLabel}
+        data-testid={`pos-line-destination-${line.id}`}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={COUNTER_DESTINATION}>{posMessages.table.destination.counter}</SelectItem>
+        {orders.map((order, index) => (
+          <SelectItem key={order.clientId} value={order.clientId}>
+            {posMessages.table.destination.order(index + 1)}
+          </SelectItem>
+        ))}
+        <SelectItem value={CREATE_NEW_DESTINATION}>
+          {posMessages.table.destination.createNew}
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  )
+}
+
+export function LineItemsTable({
+  lines,
+  orders,
+  onUpdate,
+  onRemove,
+  onChangeOrder,
+  onCreateOrderFor,
+}: LineItemsTableProps) {
   if (lines.length === 0) {
     return (
       <div
@@ -177,7 +253,7 @@ export function LineItemsTable({ lines, onUpdate, onRemove }: LineItemsTableProp
        *   carries `@container`, so this responds to the actual
        *   column the table lives in, not the window. */}
       <div className="hidden rounded-md border @5xl:block" data-testid="pos-lines-table">
-        <Table className="min-w-[1000px] table-fixed">
+        <Table className="min-w-[1140px] table-fixed">
           <TableHeader>
             <TableRow>
               <TableHead>{posMessages.table.columns.concept}</TableHead>
@@ -185,6 +261,7 @@ export function LineItemsTable({ lines, onUpdate, onRemove }: LineItemsTableProp
               <TableHead className="w-24">{posMessages.table.columns.quantity}</TableHead>
               <TableHead className="w-32">{posMessages.table.columns.unitPrice}</TableHead>
               <TableHead className="w-64">{posMessages.table.columns.discount}</TableHead>
+              <TableHead className="w-36">{posMessages.table.columns.destination}</TableHead>
               <TableHead className="w-32 text-right">
                 {posMessages.table.columns.lineTotal}
               </TableHead>
@@ -221,6 +298,14 @@ export function LineItemsTable({ lines, onUpdate, onRemove }: LineItemsTableProp
                   </TableCell>
                   <TableCell>
                     <DiscountFields line={line} onUpdate={onUpdate} />
+                  </TableCell>
+                  <TableCell>
+                    <DestinationSelect
+                      line={line}
+                      orders={orders}
+                      onChangeOrder={onChangeOrder}
+                      onCreateOrderFor={onCreateOrderFor}
+                    />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{formatMXN(lineTotal)}</TableCell>
                   <TableCell>
@@ -286,6 +371,18 @@ export function LineItemsTable({ lines, onUpdate, onRemove }: LineItemsTableProp
                   {posMessages.table.columns.discount}
                 </Label>
                 <DiscountFields line={line} onUpdate={onUpdate} />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-xs">
+                  {posMessages.table.columns.destination}
+                </Label>
+                <DestinationSelect
+                  line={line}
+                  orders={orders}
+                  onChangeOrder={onChangeOrder}
+                  onCreateOrderFor={onCreateOrderFor}
+                />
               </div>
 
               <div className="flex items-baseline justify-between border-t pt-2">

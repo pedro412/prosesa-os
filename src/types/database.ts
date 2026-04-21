@@ -664,6 +664,7 @@ export type Database = {
         Returns: {
           folio: string
           id: string
+          work_orders: Json
         }[]
       }
       current_role: { Args: never; Returns: string }

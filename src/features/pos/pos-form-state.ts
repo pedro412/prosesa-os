@@ -13,11 +13,12 @@
 // validation once the user presses Cobrar.
 
 import type { CatalogItem, CatalogUnit } from '@/lib/queries/catalog'
+import type { WorkOrderPriority } from '@/lib/queries/sales-notes'
 import type { LineDiscountType } from '@/lib/tax'
 
 // Client-only id for stable React keys on dynamically added lines.
 // Not persisted — the DB assigns its own uuid on insert.
-function randomLineId(): string {
+function randomId(): string {
   // `crypto.randomUUID` is standard in every browser we target (and in
   // Node for the test runner), so we don't need a nanoid dep.
   return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -39,6 +40,22 @@ export interface PosLine {
   unitPrice: number
   discountType: LineDiscountType
   discountValue: number
+  // LIT-37: null → counter line, non-null → attached to the order with
+  // this client id. Labels ("Orden 1", "Orden 2") are derived from the
+  // `orders` array position at render time.
+  orderClientId: string | null
+}
+
+// LIT-37: a work order declared in the draft. The server mints the real
+// UUID + derived folio on commit; here we only track enough metadata to
+// render it and wire lines to it.
+export interface PosOrder {
+  clientId: string
+  description: string
+  priority: WorkOrderPriority
+  // ISO string (UTC) when the operator sets a promised delivery, null
+  // otherwise. Stored as string so persisted JSON round-trips cleanly.
+  promisedAt: string | null
 }
 
 export interface PosFormState {
@@ -47,6 +64,7 @@ export interface PosFormState {
   notes: string
   requiresInvoice: boolean
   lines: PosLine[]
+  orders: PosOrder[]
 }
 
 export function initialPosFormState(): PosFormState {
@@ -56,7 +74,24 @@ export function initialPosFormState(): PosFormState {
     notes: '',
     requiresInvoice: false,
     lines: [],
+    orders: [],
   }
+}
+
+function newOrder(): PosOrder {
+  return {
+    clientId: `order-${randomId()}`,
+    description: '',
+    priority: 'normal',
+    promisedAt: null,
+  }
+}
+
+// Exposed so PosPage can pre-mint an order client-side when the first
+// line is toggled on (the UI needs the id to wire the line in the same
+// update).
+export function createEmptyOrder(): PosOrder {
+  return newOrder()
 }
 
 // ============================================================================
@@ -72,6 +107,13 @@ export type PosFormAction =
   | { type: 'addFreeFormLine'; line: NewFreeFormLine }
   | { type: 'updateLine'; id: string; patch: Partial<PosLine> }
   | { type: 'removeLine'; id: string }
+  // LIT-37: work-order management. The UI composes `addOrder` then
+  // `setLineOrder` when the first toggle-on fires, so both actions land
+  // in one render pass via a thunk-style dispatch pair.
+  | { type: 'addOrder'; order: PosOrder }
+  | { type: 'removeOrder'; clientId: string }
+  | { type: 'updateOrder'; clientId: string; patch: Partial<Omit<PosOrder, 'clientId'>> }
+  | { type: 'setLineOrder'; id: string; orderClientId: string | null }
   | { type: 'reset' }
 
 export interface NewFreeFormLine {
@@ -112,7 +154,7 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
         lines: [
           ...state.lines,
           {
-            id: randomLineId(),
+            id: randomId(),
             catalogItemId: item.id,
             concept: item.name,
             dimensions: '',
@@ -122,6 +164,7 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
             unitPrice,
             discountType: 'none',
             discountValue: 0,
+            orderClientId: null,
           },
         ],
       }
@@ -132,7 +175,7 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
         lines: [
           ...state.lines,
           {
-            id: randomLineId(),
+            id: randomId(),
             catalogItemId: null,
             concept: action.line.concept,
             dimensions: action.line.dimensions ?? '',
@@ -142,6 +185,7 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
             unitPrice: action.line.unitPrice,
             discountType: action.line.discountType ?? 'none',
             discountValue: action.line.discountValue ?? 0,
+            orderClientId: null,
           },
         ],
       }
@@ -154,10 +198,37 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
       }
     case 'removeLine':
       return { ...state, lines: state.lines.filter((line) => line.id !== action.id) }
+    case 'addOrder':
+      return { ...state, orders: [...state.orders, action.order] }
+    case 'removeOrder':
+      // Lines attached to the removed order fall back to Mostrador.
+      // Kept as a single reducer step so the UI can't render a frame
+      // with an orphan `orderClientId`.
+      return {
+        ...state,
+        orders: state.orders.filter((order) => order.clientId !== action.clientId),
+        lines: state.lines.map((line) =>
+          line.orderClientId === action.clientId ? { ...line, orderClientId: null } : line
+        ),
+      }
+    case 'updateOrder':
+      return {
+        ...state,
+        orders: state.orders.map((order) =>
+          order.clientId === action.clientId ? { ...order, ...action.patch } : order
+        ),
+      }
+    case 'setLineOrder':
+      return {
+        ...state,
+        lines: state.lines.map((line) =>
+          line.id === action.id ? { ...line, orderClientId: action.orderClientId } : line
+        ),
+      }
     case 'reset':
       // Keep the selected company — the operator is likely charging
       // the next customer for the same razón social. Everything else
-      // resets. Resetting the company too is a one-off click.
+      // (including any in-progress orders) resets.
       return { ...initialPosFormState(), companyId: state.companyId }
   }
 }
@@ -179,6 +250,14 @@ export interface CreateSalesNoteLinePayload {
   unit_price: number
   discount_type: LineDiscountType
   discount_value: number
+  work_order_client_id: string | null
+}
+
+export interface CreateSalesNoteWorkOrderPayload {
+  client_id: string
+  description: string | null
+  priority: WorkOrderPriority
+  promised_at: string | null
 }
 
 export interface CreateSalesNotePayload {
@@ -187,6 +266,7 @@ export interface CreateSalesNotePayload {
   notes: string | null
   requires_invoice: boolean
   lines: CreateSalesNoteLinePayload[]
+  work_orders: CreateSalesNoteWorkOrderPayload[]
 }
 
 export function toCreateSalesNotePayload(state: PosFormState): CreateSalesNotePayload {
@@ -196,6 +276,12 @@ export function toCreateSalesNotePayload(state: PosFormState): CreateSalesNotePa
     // practice. If it does, something upstream skipped a check.
     throw new Error('toCreateSalesNotePayload: companyId is required')
   }
+  // Drop orders with zero referencing lines client-side. The RPC drops
+  // them too (CLAUDE.md §8 structural freeze rationale), but keeping
+  // the payload tight makes the round-trip easier to reason about.
+  const referencedOrderIds = new Set(
+    state.lines.map((line) => line.orderClientId).filter((id): id is string => id !== null)
+  )
   return {
     company_id: state.companyId,
     customer_id: state.customerId,
@@ -211,7 +297,16 @@ export function toCreateSalesNotePayload(state: PosFormState): CreateSalesNotePa
       unit_price: line.unitPrice,
       discount_type: line.discountType,
       discount_value: line.discountValue,
+      work_order_client_id: line.orderClientId,
     })),
+    work_orders: state.orders
+      .filter((order) => referencedOrderIds.has(order.clientId))
+      .map((order) => ({
+        client_id: order.clientId,
+        description: order.description.trim() === '' ? null : order.description.trim(),
+        priority: order.priority,
+        promised_at: order.promisedAt,
+      })),
   }
 }
 
@@ -219,10 +314,23 @@ export function toCreateSalesNotePayload(state: PosFormState): CreateSalesNotePa
 // line, each line has qty > 0 and unit_price >= 0, percent discount
 // capped at 100. Mirrors the DB CHECK constraints so the user gets
 // local feedback before a failing round trip.
+//
+// LIT-37: also blocks submit when the nota has at least one referenced
+// work order but no customer attached. The shop needs a callable
+// contact for production follow-ups; pure counter sales stay
+// customer-optional.
 export function canSubmit(state: PosFormState): boolean {
   if (!state.companyId) return false
   if (state.lines.length === 0) return false
-  return state.lines.every(isLineValid)
+  if (!state.lines.every(isLineValid)) return false
+  if (hasReferencedOrder(state) && !state.customerId) return false
+  return true
+}
+
+// True when at least one line is attached to a work order. Used to
+// gate customer-required UI affordances (submit disable, inline hint).
+export function hasReferencedOrder(state: PosFormState): boolean {
+  return state.lines.some((line) => line.orderClientId !== null)
 }
 
 export function isLineValid(line: PosLine): boolean {
@@ -298,8 +406,33 @@ export function sanitizeDraft(
     return line
   })
 
+  // LIT-37: prune orders that ended up with zero lines after any
+  // upstream pruning (e.g., the user deleted the last line of an
+  // order in a previous session and we're hydrating the remainder).
+  // Also null out orderClientId on any line pointing at an order that
+  // no longer exists — defensive against a partial drift in persisted
+  // state.
+  const orderIds = new Set(state.orders.map((order) => order.clientId))
+  const patchedLines = lines.map((line) => {
+    if (line.orderClientId !== null && !orderIds.has(line.orderClientId)) {
+      drifted = true
+      return { ...line, orderClientId: null }
+    }
+    return line
+  })
+  const referenced = new Set(
+    patchedLines.map((line) => line.orderClientId).filter((id): id is string => id !== null)
+  )
+  const orders = state.orders.filter((order) => {
+    if (!referenced.has(order.clientId)) {
+      drifted = true
+      return false
+    }
+    return true
+  })
+
   return {
-    state: { ...state, companyId, customerId, lines },
+    state: { ...state, companyId, customerId, lines: patchedLines, orders },
     drifted,
   }
 }
