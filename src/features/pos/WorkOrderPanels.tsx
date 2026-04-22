@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { AlertTriangle, Trash2 } from 'lucide-react'
 
 import {
   AlertDialog,
@@ -112,6 +112,17 @@ export function WorkOrderPanels({
                     <Trash2 aria-hidden className="size-4" />
                   </Button>
                 </div>
+
+                {attached === 0 && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-800 dark:text-amber-200"
+                    data-testid={`pos-order-orphan-${order.clientId}`}
+                  >
+                    <AlertTriangle aria-hidden className="size-3.5 shrink-0" />
+                    <p>{posMessages.orders.orphanWarning}</p>
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <Label

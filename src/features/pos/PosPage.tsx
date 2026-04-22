@@ -47,6 +47,7 @@ import {
   hasReferencedOrder,
   initialPosFormState,
   isDraftEmpty,
+  orphanOrders,
   posFormReducer,
   sanitizeDraft,
   toCreateSalesNotePayload,
@@ -627,6 +628,18 @@ export function PosPage() {
                 data-testid="pos-customer-required-for-order"
               >
                 {posMessages.submit.customerRequiredForOrder}
+              </p>
+            )}
+          {!submittable &&
+            !createMutation.isPending &&
+            state.companyId &&
+            state.lines.length > 0 &&
+            orphanOrders(state).length > 0 && (
+              <p
+                className="text-center text-xs text-destructive"
+                data-testid="pos-submit-blocked-orphan"
+              >
+                {posMessages.submit.blockedOrphanOrder}
               </p>
             )}
         </div>
