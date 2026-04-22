@@ -3,6 +3,8 @@ import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-r
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import logoUrl from '@/assets/brand/prosesa-logo.png'
+import { layoutMessages } from '@/components/layout/messages'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -63,70 +65,85 @@ function LoginRoute() {
 
   return (
     <main className="bg-background text-foreground grid min-h-svh place-items-center p-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{authMessages.login.title}</CardTitle>
-          <CardDescription>{authMessages.login.description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-            <div className="space-y-2">
-              <Label htmlFor="email">{authMessages.login.emailLabel}</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={authMessages.login.emailPlaceholder}
-                aria-invalid={fieldErrors.email ? true : undefined}
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <img
+            src={logoUrl}
+            alt="ProsesaOS"
+            className="max-w-[120px] object-contain"
+            data-testid="login-logo"
+          />
+          <span className="font-display text-2xl font-semibold tracking-tight">
+            {layoutMessages.app.title}
+          </span>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{authMessages.login.title}</CardTitle>
+            <CardDescription>{authMessages.login.description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+              <div className="space-y-2">
+                <Label htmlFor="email">{authMessages.login.emailLabel}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={authMessages.login.emailPlaceholder}
+                  aria-invalid={fieldErrors.email ? true : undefined}
+                  disabled={signIn.isPending}
+                  data-testid="login-email"
+                />
+                {fieldErrors.email && (
+                  <p className="text-destructive text-sm">{fieldErrors.email}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">{authMessages.login.passwordLabel}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={authMessages.login.passwordPlaceholder}
+                  aria-invalid={fieldErrors.password ? true : undefined}
+                  disabled={signIn.isPending}
+                  data-testid="login-password"
+                />
+                {fieldErrors.password && (
+                  <p className="text-destructive text-sm">{fieldErrors.password}</p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={signIn.isPending}
-                data-testid="login-email"
-              />
-              {fieldErrors.email && <p className="text-destructive text-sm">{fieldErrors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">{authMessages.login.passwordLabel}</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={authMessages.login.passwordPlaceholder}
-                aria-invalid={fieldErrors.password ? true : undefined}
-                disabled={signIn.isPending}
-                data-testid="login-password"
-              />
-              {fieldErrors.password && (
-                <p className="text-destructive text-sm">{fieldErrors.password}</p>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={signIn.isPending}
-              data-testid="login-submit"
-            >
-              {signIn.isPending ? authMessages.login.submitting : authMessages.login.submit}
-            </Button>
-
-            <div className="text-center">
-              <Link
-                to="/auth/forgot-password"
-                className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline"
-                data-testid="login-forgot-password"
+                data-testid="login-submit"
               >
-                {authMessages.login.forgotPasswordLink}
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                {signIn.isPending ? authMessages.login.submitting : authMessages.login.submit}
+              </Button>
+
+              <div className="text-center">
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline"
+                  data-testid="login-forgot-password"
+                >
+                  {authMessages.login.forgotPasswordLink}
+                </Link>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   )
 }
