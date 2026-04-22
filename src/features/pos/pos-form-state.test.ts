@@ -140,6 +140,28 @@ describe('posFormReducer — addFreeFormLine', () => {
     expect(s.lines[0].discountType).toBe('percent')
     expect(s.lines[0].discountValue).toBe(10)
   })
+
+  it('accepts unit = "servicio" end-to-end through the payload projection (LIT-110)', () => {
+    // Flat-priced service line — no dimensions/material, quantity 1,
+    // unit just labels the thing. Round-trips through the payload
+    // projection unchanged so the RPC receives it verbatim.
+    const withCompany = posFormReducer(initialPosFormState(), {
+      type: 'setCompany',
+      companyId: 'co-a',
+    })
+    const withLine = posFormReducer(withCompany, {
+      type: 'addFreeFormLine',
+      line: {
+        concept: 'Instalación de lona en camioneta',
+        unit: 'servicio',
+        quantity: 1,
+        unitPrice: 450,
+      },
+    })
+    expect(withLine.lines[0].unit).toBe('servicio')
+    const payload = toCreateSalesNotePayload(withLine)
+    expect(payload.lines[0].unit).toBe('servicio')
+  })
 })
 
 describe('posFormReducer — updateLine + removeLine', () => {

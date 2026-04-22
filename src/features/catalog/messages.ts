@@ -21,6 +21,7 @@ export const catalogMessages = {
     litro: 'Litro',
     rollo: 'Rollo',
     hora: 'Hora',
+    servicio: 'Servicio',
   },
   pricingMode: {
     fixed: 'Precio fijo',

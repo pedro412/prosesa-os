@@ -59,6 +59,7 @@ export const posMessages = {
       litro: 'litro',
       rollo: 'rollo',
       hora: 'hora',
+      servicio: 'servicio',
     },
     add: 'Agregar',
     cancel: 'Cancelar',
