@@ -23,6 +23,9 @@ function SettingsLayout() {
               <SettingsTab to="/settings/companies" testId="settings-tab-companies">
                 {settingsMessages.tabs.companies}
               </SettingsTab>
+              <SettingsTab to="/settings/vendors" testId="settings-tab-vendors">
+                {settingsMessages.tabs.vendors}
+              </SettingsTab>
               <SettingsTab to="/settings/users" testId="settings-tab-users">
                 {settingsMessages.tabs.users}
               </SettingsTab>
@@ -39,7 +42,7 @@ function SettingsLayout() {
 }
 
 interface SettingsTabProps {
-  to: '/settings/companies' | '/settings/users' | '/settings/printer'
+  to: '/settings/companies' | '/settings/vendors' | '/settings/users' | '/settings/printer'
   testId: string
   children: ReactNode
 }

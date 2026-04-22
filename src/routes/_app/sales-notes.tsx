@@ -19,6 +19,10 @@ const salesNotesSearchSchema = z.object({
   status: salesNoteStatusSchema.optional().catch(undefined),
   paymentMethod: paymentMethodSchema.optional().catch(undefined),
   customerId: z.string().uuid().optional().catch(undefined),
+  // LIT-107: accepts a vendor uuid OR the UNASSIGNED_VENDOR sentinel
+  // ('__unassigned__'). A plain z.string() keeps both valid without
+  // teaching the schema about the sentinel constant.
+  vendorId: z.string().optional().catch(undefined),
   q: z.string().optional().catch(undefined),
   page: z.number().int().nonnegative().optional().catch(undefined),
   openId: z.string().uuid().optional().catch(undefined),

@@ -61,6 +61,10 @@ export interface PosOrder {
 export interface PosFormState {
   companyId: string | null
   customerId: string | null
+  // LIT-107: vendedor de campo attributed to this sale. Null when
+  // Gustavo closed the walk-in himself or simply didn't attribute —
+  // display as "Sin vendedor" either way.
+  vendorId: string | null
   notes: string
   requiresInvoice: boolean
   lines: PosLine[]
@@ -71,6 +75,7 @@ export function initialPosFormState(): PosFormState {
   return {
     companyId: null,
     customerId: null,
+    vendorId: null,
     notes: '',
     requiresInvoice: false,
     lines: [],
@@ -101,6 +106,7 @@ export function createEmptyOrder(): PosOrder {
 export type PosFormAction =
   | { type: 'setCompany'; companyId: string | null }
   | { type: 'setCustomer'; customerId: string | null }
+  | { type: 'setVendor'; vendorId: string | null }
   | { type: 'setNotes'; notes: string }
   | { type: 'setRequiresInvoice'; requiresInvoice: boolean }
   | { type: 'addCatalogLine'; item: CatalogItem }
@@ -137,6 +143,8 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
       return { ...state, companyId: action.companyId }
     case 'setCustomer':
       return { ...state, customerId: action.customerId }
+    case 'setVendor':
+      return { ...state, vendorId: action.vendorId }
     case 'setNotes':
       return { ...state, notes: action.notes }
     case 'setRequiresInvoice':
@@ -263,6 +271,7 @@ export interface CreateSalesNoteWorkOrderPayload {
 export interface CreateSalesNotePayload {
   company_id: string
   customer_id: string | null
+  vendor_id: string | null
   notes: string | null
   requires_invoice: boolean
   lines: CreateSalesNoteLinePayload[]
@@ -286,6 +295,7 @@ export function toCreateSalesNotePayload(state: PosFormState): CreateSalesNotePa
   return {
     company_id: state.companyId,
     customer_id: state.customerId,
+    vendor_id: state.vendorId,
     notes: state.notes.trim() === '' ? null : state.notes.trim(),
     requires_invoice: state.requiresInvoice,
     lines: state.lines.map((line) => ({
@@ -382,6 +392,7 @@ export function isDraftEmpty(state: PosFormState): boolean {
   return (
     state.lines.length === 0 &&
     state.customerId === null &&
+    state.vendorId === null &&
     state.notes.trim() === '' &&
     state.requiresInvoice === false
   )
@@ -399,6 +410,9 @@ export interface SanitizeDraftContext {
   // no row. Callers pass `true` when `state.customerId` is null or
   // while the fetch is still pending — drop only when we're sure.
   customerValid: boolean
+  // LIT-107: active vendor ids. A draft referencing a deactivated
+  // vendor gets its vendorId cleared back to null (Sin vendedor).
+  activeVendorIds: Set<string>
 }
 
 export function sanitizeDraft(
@@ -416,6 +430,12 @@ export function sanitizeDraft(
   let customerId = state.customerId
   if (customerId !== null && !ctx.customerValid) {
     customerId = null
+    drifted = true
+  }
+
+  let vendorId = state.vendorId
+  if (vendorId !== null && !ctx.activeVendorIds.has(vendorId)) {
+    vendorId = null
     drifted = true
   }
 
@@ -453,7 +473,7 @@ export function sanitizeDraft(
   })
 
   return {
-    state: { ...state, companyId, customerId, lines: patchedLines, orders },
+    state: { ...state, companyId, customerId, vendorId, lines: patchedLines, orders },
     drifted,
   }
 }

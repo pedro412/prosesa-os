@@ -28,6 +28,12 @@ export const posMessages = {
     loading: 'Buscando…',
     editAria: 'Editar datos del cliente',
   },
+  vendor: {
+    label: 'Vendedor',
+    optional: 'Opcional',
+    none: 'Sin vendedor',
+    loading: 'Cargando…',
+  },
   search: {
     label: 'Buscar producto o servicio',
     placeholder: 'Escribe para buscar en el catálogo',

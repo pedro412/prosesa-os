@@ -13,6 +13,9 @@ import { isDraftEmpty, type PosFormState } from '@/features/pos/pos-form-state'
 //   2 — LIT-37: adds `orders: PosOrder[]` and `orderClientId` on each
 //       line. v1 drafts migrate by seeding an empty orders array and
 //       null `orderClientId` on existing lines (all counter lines).
+//   3 — LIT-107: adds `vendorId: string | null`. v2 drafts migrate by
+//       seeding null (Sin vendedor) — the previous draft was captured
+//       before attribution was possible, so that's the accurate state.
 //
 // Auto-empty: `setDraft` stores `null` when the incoming state carries
 // no user-meaningful data (see `isDraftEmpty`). This is how post-Cobrar
@@ -35,14 +38,14 @@ export const usePosDraftStore = create<PosDraftStoreState>()(
     }),
     {
       name: 'prosesa-pos-draft',
-      version: 2,
+      version: 3,
       partialize: (state) => ({ draft: state.draft }),
       migrate: (persisted, version) => {
         if (!persisted || typeof persisted !== 'object') return persisted
-        const state = persisted as { draft: unknown }
+        let state = persisted as { draft: unknown }
         if (version < 2 && state.draft && typeof state.draft === 'object') {
           const draft = state.draft as PosFormState & { orders?: unknown }
-          return {
+          state = {
             draft: {
               ...draft,
               orders: Array.isArray(draft.orders) ? draft.orders : [],
@@ -56,7 +59,19 @@ export const usePosDraftStore = create<PosDraftStoreState>()(
             },
           }
         }
-        return persisted
+        if (version < 3 && state.draft && typeof state.draft === 'object') {
+          const draft = state.draft as PosFormState & { vendorId?: unknown }
+          state = {
+            draft: {
+              ...draft,
+              vendorId:
+                typeof draft.vendorId === 'string' && draft.vendorId.length > 0
+                  ? draft.vendorId
+                  : null,
+            },
+          }
+        }
+        return state
       },
     }
   )
