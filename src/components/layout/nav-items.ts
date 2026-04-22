@@ -23,7 +23,7 @@ export interface NavItem {
   label: string
   icon: LucideIcon
   adminOnly: boolean
-  badgeSlot?: 'low-stock'
+  badgeSlot?: 'low-stock' | 'unread-orders'
   testId: string
 }
 
@@ -40,6 +40,7 @@ export const navItems: readonly NavItem[] = [
     label: layoutMessages.nav.workOrders,
     icon: ClipboardList,
     adminOnly: false,
+    badgeSlot: 'unread-orders',
     testId: 'nav-work-orders',
   },
   {

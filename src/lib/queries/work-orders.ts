@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { Database } from '@/types/database'
 import { mxDayStartUtc, mxNextDayStartUtc } from '@/lib/mx-date'
+import { useOrdersUnreadStore } from '@/store/orders-unread-store'
 
 import { supabase } from '../supabase'
 import { paymentKeys } from './payments'
@@ -139,6 +141,8 @@ export const workOrderKeys = {
   detail: (id: string) => [...workOrderKeys.all, 'detail', id] as const,
   lines: (id: string) => [...workOrderKeys.all, 'detail', id, 'lines'] as const,
   log: (id: string) => [...workOrderKeys.all, 'detail', id, 'log'] as const,
+  unreadCount: (lastSeenAt: string | null) =>
+    [...workOrderKeys.all, 'unread-count', lastSeenAt] as const,
 }
 
 // ============================================================================
@@ -464,4 +468,89 @@ export function useCancelWorkOrder() {
       qc.invalidateQueries({ queryKey: paymentKeys.all })
     },
   })
+}
+
+// ============================================================================
+// Realtime unread counter (LIT-103)
+// ============================================================================
+//
+// Drives the sidebar "Órdenes de trabajo" badge. The count is the number
+// of work orders inserted since the last time the operator visited the
+// list, across both companies. First-ever login (`lastSeenAt === null`)
+// returns 0 — the badge stays hidden until the user lands on
+// `/work-orders` once, which is the spec.
+//
+// Data flow:
+//   1. TanStack Query fetches a `count(*)` on mount (key embeds
+//      `lastSeenAt` so a mark-seen reset re-runs the query from zero).
+//   2. A Realtime channel on `work_orders` INSERT optimistically bumps
+//      the cached count — no refetch needed, no flicker.
+//   3. A `storage` event listener rehydrates the Zustand store when a
+//      sibling tab calls `markSeen()`, so the badge clears across tabs.
+
+interface WorkOrdersRealtimeRow {
+  created_at: string
+}
+
+async function fetchUnreadWorkOrdersCount(lastSeenAt: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('work_orders')
+    .select('*', { count: 'exact', head: true })
+    .gt('created_at', lastSeenAt)
+    .is('cancelled_at', null)
+  if (error) throw error
+  return count ?? 0
+}
+
+export function useUnreadWorkOrdersCount(): number {
+  const lastSeenAt = useOrdersUnreadStore((s) => s.lastSeenAt)
+  const qc = useQueryClient()
+
+  const { data } = useQuery({
+    queryKey: workOrderKeys.unreadCount(lastSeenAt),
+    queryFn: () => fetchUnreadWorkOrdersCount(lastSeenAt as string),
+    enabled: lastSeenAt !== null,
+    // Same freshness semantics as the lists — ops are always looking at
+    // live data, so we let it refetch on focus but don't hammer.
+    staleTime: 30_000,
+  })
+
+  // Realtime subscription. Keyed on `lastSeenAt` so a mark-seen tears
+  // down the old channel and starts a fresh one whose payload.new
+  // comparison is against the new baseline.
+  useEffect(() => {
+    if (lastSeenAt === null) return
+    const channel = supabase
+      .channel('work-orders-inserts')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'work_orders' },
+        (payload) => {
+          const row = payload.new as WorkOrdersRealtimeRow
+          if (!row?.created_at) return
+          if (row.created_at <= lastSeenAt) return
+          qc.setQueryData<number>(workOrderKeys.unreadCount(lastSeenAt), (prev) => (prev ?? 0) + 1)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [lastSeenAt, qc])
+
+  // Cross-tab sync. Zustand's `persist` middleware writes to
+  // localStorage but does NOT subscribe to the `storage` event — so a
+  // sibling tab calling `markSeen()` would not clear this tab's badge
+  // on its own. Rehydrating on the storage event closes the loop.
+  useEffect(() => {
+    function onStorage(event: StorageEvent) {
+      if (event.key !== 'prosesa-orders-unread') return
+      void useOrdersUnreadStore.persist.rehydrate()
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  return data ?? 0
 }

@@ -2,6 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router'
 
 import { Badge } from '@/components/ui/badge'
 import { useCurrentProfile, isAdmin } from '@/lib/queries/profiles'
+import { useUnreadWorkOrdersCount } from '@/lib/queries/work-orders'
 import { cn } from '@/lib/utils'
 
 import { layoutMessages } from './messages'
@@ -51,6 +52,7 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
     >
       <Icon className="size-4 shrink-0" aria-hidden />
       <span className="flex-1 truncate">{item.label}</span>
+      {item.badgeSlot === 'unread-orders' && <UnreadOrdersBadge />}
       {item.badgeSlot === 'low-stock' && (
         // Slot wired by M5-4. Hidden until a count > 0 is provided.
         <Badge
@@ -60,5 +62,20 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
         />
       )}
     </Link>
+  )
+}
+
+// Sidebar pill driven by the realtime unread-orders hook (LIT-103).
+// Hidden when count is 0 so the layout doesn't shift once the operator
+// has seen everything; capped at 99+ to keep the pill width stable
+// during a busy morning.
+function UnreadOrdersBadge() {
+  const count = useUnreadWorkOrdersCount()
+  if (count <= 0) return null
+  const label = count > 99 ? '99+' : String(count)
+  return (
+    <Badge variant="destructive" data-testid="nav-work-orders-unread-badge">
+      {label}
+    </Badge>
   )
 }
