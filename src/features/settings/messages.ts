@@ -110,6 +110,7 @@ export const settingsMessages = {
       cancel: 'Cancelar',
       errors: {
         nombreRequired: 'El nombre es obligatorio.',
+        telefonoFormat: 'El teléfono debe tener 10 dígitos.',
         emailInvalid: 'Ingresa un correo válido.',
       },
     },

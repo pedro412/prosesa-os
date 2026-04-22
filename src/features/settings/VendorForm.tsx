@@ -14,6 +14,7 @@ import {
   useCreateVendor,
   useUpdateVendor,
 } from '@/lib/queries/vendors'
+import { sanitizeTelefono, TELEFONO_REGEX } from '@/lib/telefono'
 
 import { settingsMessages } from './messages'
 
@@ -21,11 +22,18 @@ type VendorFormProps =
   | { mode: 'create'; onSaved: () => void; vendor?: never }
   | { mode: 'edit'; vendor: Vendor; onSaved: () => void }
 
-type FieldErrors = Partial<Record<'nombre' | 'email', string>>
+type FieldErrors = Partial<Record<'nombre' | 'telefono' | 'email', string>>
 
+// Telefono is optional on vendors (customers require it, vendors don't
+// — see CLAUDE.md §7). But when the operator captures one, it must
+// satisfy the same 10-digit rule as everywhere else. `z.literal('')`
+// is the "empty is fine" branch.
 const schema = z.object({
   nombre: z.string().trim().min(1, settingsMessages.vendors.form.errors.nombreRequired),
-  telefono: z.string().trim().max(32).optional().or(z.literal('')),
+  telefono: z.union([
+    z.literal(''),
+    z.string().regex(TELEFONO_REGEX, settingsMessages.vendors.form.errors.telefonoFormat),
+  ]),
   email: z.union([
     z.string().trim().email(settingsMessages.vendors.form.errors.emailInvalid),
     z.literal(''),
@@ -63,7 +71,9 @@ export function VendorForm(props: VendorFormProps) {
       const errs: FieldErrors = {}
       for (const issue of parsed.error.issues) {
         const field = issue.path[0]
-        if (field === 'nombre' || field === 'email') errs[field] = issue.message
+        if (field === 'nombre' || field === 'telefono' || field === 'email') {
+          errs[field] = issue.message
+        }
       }
       setFieldErrors(errs)
       return
@@ -118,10 +128,15 @@ export function VendorForm(props: VendorFormProps) {
           <Input
             id="vendor-telefono"
             value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
+            onChange={(e) => setTelefono(sanitizeTelefono(e.target.value))}
             placeholder={messages.form.telefonoPlaceholder}
+            inputMode="numeric"
+            aria-invalid={fieldErrors.telefono ? true : undefined}
             data-testid="vendor-form-telefono"
           />
+          {fieldErrors.telefono && (
+            <p className="text-destructive text-xs">{fieldErrors.telefono}</p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="vendor-email">{messages.form.emailLabel}</Label>
