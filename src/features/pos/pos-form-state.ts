@@ -276,9 +276,10 @@ export function toCreateSalesNotePayload(state: PosFormState): CreateSalesNotePa
     // practice. If it does, something upstream skipped a check.
     throw new Error('toCreateSalesNotePayload: companyId is required')
   }
-  // Drop orders with zero referencing lines client-side. The RPC drops
-  // them too (CLAUDE.md §8 structural freeze rationale), but keeping
-  // the payload tight makes the round-trip easier to reason about.
+  // Drop orders with zero referencing lines client-side. LIT-105:
+  // canSubmit is the primary gate for this now (blocks the Cobrar
+  // button when any order is orphan), so this filter is defensive
+  // belt-and-suspenders — if it ever fires the UI slipped a bug.
   const referencedOrderIds = new Set(
     state.lines.map((line) => line.orderClientId).filter((id): id is string => id !== null)
   )
@@ -319,11 +320,19 @@ export function toCreateSalesNotePayload(state: PosFormState): CreateSalesNotePa
 // work order but no customer attached. The shop needs a callable
 // contact for production follow-ups; pure counter sales stay
 // customer-optional.
+//
+// LIT-105: blocks submit when any declared order has zero lines
+// assigned. Previously the payload projection silently pruned those
+// orders, which read to operators as successful creation — the order
+// would vanish without a trace. Forcing the operator to either
+// assign a line or delete the empty order eliminates that data-loss
+// UX.
 export function canSubmit(state: PosFormState): boolean {
   if (!state.companyId) return false
   if (state.lines.length === 0) return false
   if (!state.lines.every(isLineValid)) return false
   if (hasReferencedOrder(state) && !state.customerId) return false
+  if (orphanOrders(state).length > 0) return false
   return true
 }
 
@@ -331,6 +340,18 @@ export function canSubmit(state: PosFormState): boolean {
 // gate customer-required UI affordances (submit disable, inline hint).
 export function hasReferencedOrder(state: PosFormState): boolean {
   return state.lines.some((line) => line.orderClientId !== null)
+}
+
+// LIT-105: orders the operator declared but never assigned a line to.
+// Callers: the submit gate (canSubmit) and the per-card warning in
+// WorkOrderPanels. Always reflects the current line → order wiring;
+// removing the last line of an order instantly makes it orphan again.
+export function orphanOrders(state: PosFormState): PosOrder[] {
+  if (state.orders.length === 0) return []
+  const referenced = new Set(
+    state.lines.map((line) => line.orderClientId).filter((id): id is string => id !== null)
+  )
+  return state.orders.filter((order) => !referenced.has(order.clientId))
 }
 
 export function isLineValid(line: PosLine): boolean {

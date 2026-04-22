@@ -121,6 +121,7 @@ export const posMessages = {
       promisedAtClear: 'Sin fecha',
     },
     lineCount: (n: number) => (n === 1 ? '1 concepto' : `${n} conceptos`),
+    orphanWarning: 'Esta orden no tiene conceptos. Asigna una partida o elimínala.',
   },
   totals: {
     subtotal: 'Subtotal',
@@ -136,6 +137,7 @@ export const posMessages = {
     disabledReason: 'Agrega al menos un concepto para cobrar.',
     customerRequiredForOrder:
       'Asigna un cliente. Las órdenes de trabajo necesitan un contacto para dar seguimiento.',
+    blockedOrphanOrder: 'No puedes cobrar: hay órdenes sin conceptos asignados.',
     success: (folio: string) => `Nota ${folio} creada.`,
     successHint: 'Nota pagada y registrada.',
     genericError: 'No se pudo generar la nota. Intenta de nuevo.',

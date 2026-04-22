@@ -4,9 +4,11 @@ import type { CatalogItem } from '@/lib/queries/catalog'
 
 import {
   canSubmit,
+  createEmptyOrder,
   initialPosFormState,
   isDraftEmpty,
   isLineValid,
+  orphanOrders,
   posFormReducer,
   sanitizeDraft,
   toCreateSalesNotePayload,
@@ -272,6 +274,89 @@ describe('canSubmit', () => {
       patch: { discountType: 'percent', discountValue: 150 },
     })
     expect(canSubmit(broken)).toBe(false)
+  })
+
+  it('is false when a work order is declared but has zero lines (LIT-105)', () => {
+    // Counter line + orphan order → RPC would have silently dropped the
+    // order pre-fix. Gate now refuses the submit until the operator
+    // assigns a line or deletes the order.
+    const order = createEmptyOrder()
+    const withCompany = posFormReducer(initialPosFormState(), {
+      type: 'setCompany',
+      companyId: 'co-a',
+    })
+    const withLine = posFormReducer(withCompany, { type: 'addCatalogLine', item })
+    const withOrphan = posFormReducer(withLine, { type: 'addOrder', order })
+    expect(canSubmit(withOrphan)).toBe(false)
+  })
+
+  it('is true once a line is assigned into the previously-orphan order', () => {
+    const order = createEmptyOrder()
+    const withCompany = posFormReducer(initialPosFormState(), {
+      type: 'setCompany',
+      companyId: 'co-a',
+    })
+    // Customer required because an order is referenced (LIT-37 rule).
+    const withCustomer = posFormReducer(withCompany, {
+      type: 'setCustomer',
+      customerId: 'cu-1',
+    })
+    const withLine = posFormReducer(withCustomer, { type: 'addCatalogLine', item })
+    const withOrphan = posFormReducer(withLine, { type: 'addOrder', order })
+    const lineId = withOrphan.lines[0].id
+    const assigned = posFormReducer(withOrphan, {
+      type: 'setLineOrder',
+      id: lineId,
+      orderClientId: order.clientId,
+    })
+    expect(canSubmit(assigned)).toBe(true)
+  })
+})
+
+describe('orphanOrders (LIT-105)', () => {
+  const item = makeItem({ id: 'a', name: 'A', price: 100 })
+
+  it('returns [] when state has no declared orders', () => {
+    const s = posFormReducer(initialPosFormState(), { type: 'setCompany', companyId: 'co-a' })
+    expect(orphanOrders(s)).toEqual([])
+  })
+
+  it('returns [] when every declared order has at least one referencing line', () => {
+    const order = createEmptyOrder()
+    const withCompany = posFormReducer(initialPosFormState(), {
+      type: 'setCompany',
+      companyId: 'co-a',
+    })
+    const withLine = posFormReducer(withCompany, { type: 'addCatalogLine', item })
+    const withOrder = posFormReducer(withLine, { type: 'addOrder', order })
+    const lineId = withOrder.lines[0].id
+    const assigned = posFormReducer(withOrder, {
+      type: 'setLineOrder',
+      id: lineId,
+      orderClientId: order.clientId,
+    })
+    expect(orphanOrders(assigned)).toEqual([])
+  })
+
+  it('returns only the orders with zero referencing lines', () => {
+    const orderA = createEmptyOrder()
+    const orderB = createEmptyOrder()
+    const withCompany = posFormReducer(initialPosFormState(), {
+      type: 'setCompany',
+      companyId: 'co-a',
+    })
+    const withLine = posFormReducer(withCompany, { type: 'addCatalogLine', item })
+    const withOrderA = posFormReducer(withLine, { type: 'addOrder', order: orderA })
+    const withOrderB = posFormReducer(withOrderA, { type: 'addOrder', order: orderB })
+    const lineId = withOrderB.lines[0].id
+    const assignedToA = posFormReducer(withOrderB, {
+      type: 'setLineOrder',
+      id: lineId,
+      orderClientId: orderA.clientId,
+    })
+    const orphans = orphanOrders(assignedToA)
+    expect(orphans).toHaveLength(1)
+    expect(orphans[0].clientId).toBe(orderB.clientId)
   })
 })
 
