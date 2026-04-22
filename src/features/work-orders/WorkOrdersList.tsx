@@ -60,7 +60,9 @@ const ALL = '__all__'
 const PRIORITY_OPTIONS: WorkOrderPriority[] = ['normal', 'urgente']
 const DATE_FIELD_OPTIONS: WorkOrderDateField[] = ['created', 'promised']
 
-const routeApi = getRouteApi('/_app/work-orders')
+// Route id is the index child (`/work-orders/`), not the layout parent —
+// the search-params schema lives on the index file.
+const routeApi = getRouteApi('/_app/work-orders/')
 
 const dateFormatter = new Intl.DateTimeFormat('es-MX', {
   day: '2-digit',
