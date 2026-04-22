@@ -60,6 +60,16 @@ describe('posFormReducer — scalar fields', () => {
     })
     expect(s.requiresInvoice).toBe(true)
   })
+
+  it('setVendor stores vendorId; null clears it (LIT-107)', () => {
+    const seeded = posFormReducer(initialPosFormState(), {
+      type: 'setVendor',
+      vendorId: 'vendor-1',
+    })
+    expect(seeded.vendorId).toBe('vendor-1')
+    const cleared = posFormReducer(seeded, { type: 'setVendor', vendorId: null })
+    expect(cleared.vendorId).toBeNull()
+  })
 })
 
 describe('posFormReducer — addCatalogLine', () => {
@@ -446,6 +456,7 @@ describe('sanitizeDraft', () => {
       activeCompanyIds: new Set(['co-a', 'co-b']),
       activeCatalogItemIds: new Set(['item-1']),
       customerValid: true,
+      activeVendorIds: new Set<string>(),
     }
     const result = sanitizeDraft(state, ctx)
     expect(result.drifted).toBe(false)
@@ -463,6 +474,7 @@ describe('sanitizeDraft', () => {
       activeCompanyIds: new Set(['co-a']),
       activeCatalogItemIds: new Set(),
       customerValid: true,
+      activeVendorIds: new Set<string>(),
     })
     expect(result.drifted).toBe(true)
     expect(result.state.companyId).toBeNull()
@@ -477,6 +489,7 @@ describe('sanitizeDraft', () => {
       activeCompanyIds: new Set(),
       activeCatalogItemIds: new Set(),
       customerValid: false,
+      activeVendorIds: new Set<string>(),
     })
     expect(result.drifted).toBe(true)
     expect(result.state.customerId).toBeNull()
@@ -491,6 +504,7 @@ describe('sanitizeDraft', () => {
       activeCompanyIds: new Set(),
       activeCatalogItemIds: new Set(),
       customerValid: true,
+      activeVendorIds: new Set<string>(),
     })
     expect(result.drifted).toBe(true)
     expect(result.state.lines).toHaveLength(1)
@@ -508,9 +522,25 @@ describe('sanitizeDraft', () => {
       activeCompanyIds: new Set(),
       activeCatalogItemIds: new Set(),
       customerValid: true,
+      activeVendorIds: new Set<string>(),
     })
     expect(result.drifted).toBe(false)
     expect(result.state.lines[0]).toEqual(state.lines[0])
+  })
+
+  it('nulls a deactivated vendor and flags drift (LIT-107)', () => {
+    const state = posFormReducer(initialPosFormState(), {
+      type: 'setVendor',
+      vendorId: 'vendor-gone',
+    })
+    const result = sanitizeDraft(state, {
+      activeCompanyIds: new Set(),
+      activeCatalogItemIds: new Set(),
+      customerValid: true,
+      activeVendorIds: new Set(['vendor-alive']),
+    })
+    expect(result.drifted).toBe(true)
+    expect(result.state.vendorId).toBeNull()
   })
 
   it('reports drift across multiple concurrent issues in a single pass', () => {
@@ -519,6 +549,7 @@ describe('sanitizeDraft', () => {
       activeCompanyIds: new Set(), // company gone
       activeCatalogItemIds: new Set(), // catalog item gone
       customerValid: false, // customer gone
+      activeVendorIds: new Set<string>(),
     })
     expect(result.drifted).toBe(true)
     expect(result.state.companyId).toBeNull()
@@ -560,6 +591,7 @@ describe('toCreateSalesNotePayload', () => {
     expect(payload).toEqual({
       company_id: 'co-a',
       customer_id: null,
+      vendor_id: null,
       notes: null,
       requires_invoice: false,
       lines: [
@@ -578,5 +610,24 @@ describe('toCreateSalesNotePayload', () => {
       ],
       work_orders: [],
     })
+  })
+
+  it('projects vendorId into payload.vendor_id (LIT-107)', () => {
+    // vendor_id is optional on the RPC but always present in the
+    // payload shape (null when Gustavo didn't attribute).
+    const withCompany = posFormReducer(initialPosFormState(), {
+      type: 'setCompany',
+      companyId: 'co-a',
+    })
+    const withVendor = posFormReducer(withCompany, {
+      type: 'setVendor',
+      vendorId: 'vendor-juan',
+    })
+    const withLine = posFormReducer(withVendor, {
+      type: 'addFreeFormLine',
+      line: { concept: 'Rotulación', unit: 'pieza', quantity: 1, unitPrice: 500 },
+    })
+    const payload = toCreateSalesNotePayload(withLine)
+    expect(payload.vendor_id).toBe('vendor-juan')
   })
 })

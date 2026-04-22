@@ -34,6 +34,7 @@ import {
   useCreateCustomer,
   useUpdateCustomer,
 } from '@/lib/queries/customers'
+import { sanitizeTelefono, TELEFONO_REGEX } from '@/lib/telefono'
 
 import { customersMessages } from './messages'
 import { isValidRfc, normalizeRfc } from './rfcValidation'
@@ -133,7 +134,7 @@ const schema = z.object({
   telefono: z
     .string()
     .min(1, customersMessages.form.errors.telefonoRequired)
-    .regex(/^\d{10}$/, customersMessages.form.errors.telefonoFormat),
+    .regex(TELEFONO_REGEX, customersMessages.form.errors.telefonoFormat),
   email: z
     .string()
     .optional()
@@ -150,12 +151,6 @@ const schema = z.object({
 const blankToNull = (value: string): string | null => {
   const trimmed = value.trim()
   return trimmed === '' ? null : trimmed
-}
-
-// Strip any non-digit and clip to 10. Handles typed digits and the
-// "55 (938) 123-4567" paste case in a single code path.
-function sanitizeTelefono(raw: string): string {
-  return raw.replace(/\D/g, '').slice(0, 10)
 }
 
 function buildCreatePayload(state: FormState): NewCustomer {

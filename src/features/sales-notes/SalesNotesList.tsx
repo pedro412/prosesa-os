@@ -34,10 +34,12 @@ import { useCompanies } from '@/lib/queries/companies'
 import { useCustomersByIds } from '@/lib/queries/customers'
 import { usePaymentsByNote, type PaymentMethod } from '@/lib/queries/payments'
 import { type SalesNote, type SalesNoteStatus, useSalesNotesPaged } from '@/lib/queries/sales-notes'
+import { useVendorsByIds } from '@/lib/queries/vendors'
 
 import { CustomerFilter } from './CustomerFilter'
 import { salesNotesMessages } from './messages'
 import { SalesNoteDetailDrawer } from './SalesNoteDetailDrawer'
+import { VendorFilter } from './VendorFilter'
 
 const PAGE_SIZE = 25
 
@@ -138,6 +140,7 @@ export function SalesNotesList() {
     status: search.status,
     paymentMethod: search.paymentMethod,
     customerId: search.customerId,
+    vendorId: search.vendorId,
     from: search.from,
     to: search.to,
     search: search.q,
@@ -159,6 +162,19 @@ export function SalesNotesList() {
     [data?.rows]
   )
   const { data: customerNames } = useCustomersByIds(customerIds)
+
+  // LIT-107: resolve vendor names for the new Vendedor column. The
+  // Row type on sales_notes is generated before the vendor_id
+  // migration lands, so the field isn't typed yet — cast at the read
+  // site and treat as optional until `npm run db:types` regenerates.
+  const vendorIds = useMemo(
+    () =>
+      (data?.rows ?? [])
+        .map((row) => row.vendor_id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    [data?.rows]
+  )
+  const { data: vendorNames } = useVendorsByIds(vendorIds)
   const rows = data?.rows ?? []
 
   const filtersApplied =
@@ -166,6 +182,7 @@ export function SalesNotesList() {
     !!search.status ||
     !!search.paymentMethod ||
     !!search.customerId ||
+    !!search.vendorId ||
     !!search.from ||
     !!search.to ||
     (search.q ?? '').trim().length > 0
@@ -281,6 +298,13 @@ export function SalesNotesList() {
               onChange={(id) => updateSearch({ customerId: id ?? undefined })}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label>{messages.filters.vendorLabel}</Label>
+            <VendorFilter
+              value={search.vendorId ?? null}
+              onChange={(id) => updateSearch({ vendorId: id ?? undefined })}
+            />
+          </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="sn-search">{messages.filters.searchLabel}</Label>
             <div className="relative">
@@ -320,7 +344,7 @@ export function SalesNotesList() {
         </CardContent>
       </Card>
 
-      {isPending && <ListLoadingCard skeleton={{ rows: PAGE_SIZE, columns: 7 }} />}
+      {isPending && <ListLoadingCard skeleton={{ rows: PAGE_SIZE, columns: 8 }} />}
 
       {isError && <ListErrorCard title={messages.list.loadError} />}
 
@@ -350,25 +374,32 @@ export function SalesNotesList() {
                 <TableHead>{messages.columns.date}</TableHead>
                 <TableHead>{messages.columns.company}</TableHead>
                 <TableHead>{messages.columns.customer}</TableHead>
+                <TableHead>{messages.columns.vendor}</TableHead>
                 <TableHead className="text-right">{messages.columns.total}</TableHead>
                 <TableHead>{messages.columns.status}</TableHead>
                 <TableHead className="sr-only">{messages.columns.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((note) => (
-                <SalesNoteRow
-                  key={note.id}
-                  note={note}
-                  companyLabel={companyMap.get(note.company_id)?.name ?? '—'}
-                  customerLabel={
-                    note.customer_id
-                      ? (customerNames?.get(note.customer_id) ?? '…')
-                      : messages.list.publicoEnGeneral
-                  }
-                  onOpen={() => updateSearch({ openId: note.id })}
-                />
-              ))}
+              {rows.map((note) => {
+                const vendorId = note.vendor_id
+                return (
+                  <SalesNoteRow
+                    key={note.id}
+                    note={note}
+                    companyLabel={companyMap.get(note.company_id)?.name ?? '—'}
+                    customerLabel={
+                      note.customer_id
+                        ? (customerNames?.get(note.customer_id) ?? '…')
+                        : messages.list.publicoEnGeneral
+                    }
+                    vendorLabel={
+                      vendorId ? (vendorNames?.get(vendorId) ?? '…') : messages.list.sinVendedor
+                    }
+                    onOpen={() => updateSearch({ openId: note.id })}
+                  />
+                )
+              })}
             </TableBody>
           </Table>
         </Card>
@@ -417,10 +448,17 @@ interface SalesNoteRowProps {
   note: SalesNote
   companyLabel: string
   customerLabel: string
+  vendorLabel: string
   onOpen: () => void
 }
 
-function SalesNoteRow({ note, companyLabel, customerLabel, onOpen }: SalesNoteRowProps) {
+function SalesNoteRow({
+  note,
+  companyLabel,
+  customerLabel,
+  vendorLabel,
+  onOpen,
+}: SalesNoteRowProps) {
   // Per-row fetch of the note's payments just to compute a display
   // method chip. TanStack Query deduplicates across rows and the
   // detail drawer, so this stays a single cache entry per note.
@@ -453,6 +491,7 @@ function SalesNoteRow({ note, companyLabel, customerLabel, onOpen }: SalesNoteRo
       </TableCell>
       <TableCell className="text-sm">{companyLabel}</TableCell>
       <TableCell className="text-sm">{customerLabel}</TableCell>
+      <TableCell className="text-muted-foreground text-sm">{vendorLabel}</TableCell>
       <TableCell className="text-right font-medium tabular-nums">
         {formatMXN(Number(note.total))}
       </TableCell>

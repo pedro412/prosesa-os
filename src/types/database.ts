@@ -501,6 +501,7 @@ export type Database = {
           total: number
           updated_at: string
           updated_by: string | null
+          vendor_id: string | null
         }
         Insert: {
           cancellation_reason?: string | null
@@ -524,6 +525,7 @@ export type Database = {
           total?: number
           updated_at?: string
           updated_by?: string | null
+          vendor_id?: string | null
         }
         Update: {
           cancellation_reason?: string | null
@@ -547,6 +549,7 @@ export type Database = {
           total?: number
           updated_at?: string
           updated_by?: string | null
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -561,6 +564,60 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_notes_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          nombre: string
+          telefono: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          nombre: string
+          telefono?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          telefono?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

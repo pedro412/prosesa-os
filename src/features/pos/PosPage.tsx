@@ -28,6 +28,7 @@ import {
   type CreateSalesNotePaymentInput,
   useCreateSalesNote,
 } from '@/lib/queries/sales-notes'
+import { useVendors } from '@/lib/queries/vendors'
 import { computeLineTotal, computeTotals, roundMoney, type Totals } from '@/lib/tax'
 import { usePosDraftStore } from '@/store/pos-draft-store'
 import { usePosPreferencesStore } from '@/store/pos-preferences'
@@ -54,6 +55,7 @@ import {
 } from './pos-form-state'
 import { PrinterStatusIndicator } from './PrinterStatusIndicator'
 import { TotalsPanel } from './TotalsPanel'
+import { VendorSelect } from './VendorSelect'
 import { WorkOrderPanels } from './WorkOrderPanels'
 
 // Snapshot of everything a just-created sale needs to render a ticket.
@@ -149,6 +151,11 @@ export function PosPage() {
   // `catalogItemId` still resolves. Same cache as the search panel.
   const { data: catalogItems, isPending: catalogPending } = useItems({})
 
+  // Active vendors — LIT-107. Read here so the drift check can null
+  // out a persisted vendorId that points at a now-deactivated vendor.
+  // Same cache as VendorSelect.
+  const { data: vendors, isPending: vendorsPending } = useVendors({ includeInactive: false })
+
   // Rehydrate the `selectedCustomer` row when we restore a draft with
   // a `customerId`. `CustomerSelect` needs the full `Customer` object
   // to render a label, but the store only persists the id. Returns
@@ -199,13 +206,14 @@ export function PosPage() {
   const driftCheckedRef = useRef(false)
   useEffect(() => {
     if (driftCheckedRef.current) return
-    if (companiesPending || catalogPending) return
+    if (companiesPending || catalogPending || vendorsPending) return
     if (state.customerId && !customerFetched && !customerError) return
 
     const ctx = {
       activeCompanyIds: new Set(companies?.map((c) => c.id) ?? []),
       activeCatalogItemIds: new Set(catalogItems?.map((i) => i.id) ?? []),
       customerValid: state.customerId === null || (!!rehydratedCustomer && !customerError),
+      activeVendorIds: new Set(vendors?.map((v) => v.id) ?? []),
     }
     const { state: sanitized, drifted } = sanitizeDraft(state, ctx)
     driftCheckedRef.current = true
@@ -217,6 +225,9 @@ export function PosPage() {
     if (sanitized.customerId !== state.customerId) {
       dispatch({ type: 'setCustomer', customerId: sanitized.customerId })
       setSelectedCustomer(null)
+    }
+    if (sanitized.vendorId !== state.vendorId) {
+      dispatch({ type: 'setVendor', vendorId: sanitized.vendorId })
     }
     sanitized.lines.forEach((line) => {
       const before = state.lines.find((l) => l.id === line.id)
@@ -244,10 +255,12 @@ export function PosPage() {
   }, [
     companiesPending,
     catalogPending,
+    vendorsPending,
     customerFetched,
     customerError,
     companies,
     catalogItems,
+    vendors,
     rehydratedCustomer,
   ])
 
@@ -560,6 +573,11 @@ export function PosPage() {
               dispatch({ type: 'setCustomer', customerId: customer?.id ?? null })
             }}
             onRequestEdit={() => setCustomerEditOpen(true)}
+          />
+
+          <VendorSelect
+            value={state.vendorId}
+            onChange={(vendorId) => dispatch({ type: 'setVendor', vendorId })}
           />
 
           <div className="space-y-1.5">

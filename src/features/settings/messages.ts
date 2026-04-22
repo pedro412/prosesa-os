@@ -8,6 +8,7 @@ export const settingsMessages = {
   },
   tabs: {
     companies: 'Empresas',
+    vendors: 'Vendedores',
     users: 'Usuarios',
     printer: 'Impresora',
   },
@@ -65,6 +66,59 @@ export const settingsMessages = {
   toast: {
     success: 'Empresa actualizada.',
     error: 'No se pudieron guardar los cambios.',
+  },
+  vendors: {
+    sectionTitle: 'Vendedores',
+    sectionDescription:
+      'Registra a los vendedores que cierran ventas en la calle para poder atribuir cada nota en el POS. Los vendedores inactivos no aparecen en el selector de cobro, pero conservan su historial.',
+    loading: 'Cargando vendedores…',
+    empty: 'Aún no hay vendedores. Usa "Nuevo vendedor" para dar de alta el primero.',
+    loadError: 'No se pudieron cargar los vendedores.',
+    newButton: 'Nuevo vendedor',
+    columns: {
+      nombre: 'Nombre',
+      telefono: 'Teléfono',
+      email: 'Correo',
+      estado: 'Estado',
+      actions: 'Acciones',
+    },
+    estado: {
+      active: 'Activo',
+      inactive: 'Inactivo',
+    },
+    notSet: '—',
+    edit: 'Editar',
+    createDialog: {
+      title: 'Nuevo vendedor',
+      description: 'Registra a un vendedor externo para atribuir notas desde el POS.',
+    },
+    editDialog: {
+      title: 'Editar vendedor',
+      description: 'Actualiza los datos del vendedor.',
+    },
+    form: {
+      nombreLabel: 'Nombre',
+      nombrePlaceholder: 'Ej. Juan Pérez',
+      telefonoLabel: 'Teléfono',
+      telefonoPlaceholder: 'Ej. 9381234567',
+      emailLabel: 'Correo',
+      emailPlaceholder: 'vendedor@correo.com',
+      isActiveLabel: 'Activo',
+      isActiveHint: 'Los vendedores inactivos no aparecen en el selector del POS.',
+      save: 'Guardar',
+      saving: 'Guardando…',
+      cancel: 'Cancelar',
+      errors: {
+        nombreRequired: 'El nombre es obligatorio.',
+        telefonoFormat: 'El teléfono debe tener 10 dígitos.',
+        emailInvalid: 'Ingresa un correo válido.',
+      },
+    },
+    toast: {
+      createSuccess: 'Vendedor creado.',
+      updateSuccess: 'Vendedor actualizado.',
+      error: 'No se pudieron guardar los cambios.',
+    },
   },
   printer: {
     sectionTitle: 'Impresora térmica',

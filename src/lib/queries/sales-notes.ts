@@ -56,7 +56,15 @@ export interface ListSalesNotesOptions {
   // LIT-35: exact customer match. The history UI exposes this as a
   // Cliente combobox instead of cross-table text search.
   customerId?: string
+  // LIT-107: exact vendor match. The special sentinel '__unassigned__'
+  // filters to notes with vendor_id IS NULL (notas sin atribución).
+  vendorId?: string
 }
+
+// Sentinel passed to `vendorId` to filter notas with no vendor
+// attributed. Chosen to be invalid as a uuid so it can never collide
+// with a real vendor id.
+export const UNASSIGNED_VENDOR = '__unassigned__' as const
 
 export interface PagedSalesNotesOptions extends ListSalesNotesOptions {
   page?: number
@@ -84,6 +92,7 @@ export const salesNoteKeys = {
         search: opts.search?.trim() ?? '',
         paymentMethod: opts.paymentMethod ?? null,
         customerId: opts.customerId ?? null,
+        vendorId: opts.vendorId ?? null,
       },
     ] as const,
   paged: (opts: PagedSalesNotesOptions = {}) =>
@@ -98,6 +107,7 @@ export const salesNoteKeys = {
         search: opts.search?.trim() ?? '',
         paymentMethod: opts.paymentMethod ?? null,
         customerId: opts.customerId ?? null,
+        vendorId: opts.vendorId ?? null,
         page: opts.page ?? 0,
         pageSize: opts.pageSize ?? DEFAULT_PAGE_SIZE,
       },
@@ -132,6 +142,11 @@ export async function listSalesNotes(opts: ListSalesNotesOptions = {}): Promise<
     if (opts.companyId) query = query.eq('company_id', opts.companyId)
     if (opts.status) query = query.eq('status', opts.status)
     if (opts.customerId) query = query.eq('customer_id', opts.customerId)
+    if (opts.vendorId === UNASSIGNED_VENDOR) {
+      query = query.is('vendor_id', null)
+    } else if (opts.vendorId) {
+      query = query.eq('vendor_id', opts.vendorId)
+    }
     if (opts.from) query = query.gte('created_at', mxDayStartUtc(opts.from))
     if (opts.to) query = query.lt('created_at', mxNextDayStartUtc(opts.to))
     if (opts.search) {
@@ -149,6 +164,11 @@ export async function listSalesNotes(opts: ListSalesNotesOptions = {}): Promise<
   if (opts.companyId) query = query.eq('company_id', opts.companyId)
   if (opts.status) query = query.eq('status', opts.status)
   if (opts.customerId) query = query.eq('customer_id', opts.customerId)
+  if (opts.vendorId === UNASSIGNED_VENDOR) {
+    query = query.is('vendor_id', null)
+  } else if (opts.vendorId) {
+    query = query.eq('vendor_id', opts.vendorId)
+  }
   if (opts.from) query = query.gte('created_at', mxDayStartUtc(opts.from))
   if (opts.to) query = query.lt('created_at', mxNextDayStartUtc(opts.to))
   if (opts.search) {
@@ -181,6 +201,11 @@ export async function listSalesNotesPaged(
     if (opts.companyId) query = query.eq('company_id', opts.companyId)
     if (opts.status) query = query.eq('status', opts.status)
     if (opts.customerId) query = query.eq('customer_id', opts.customerId)
+    if (opts.vendorId === UNASSIGNED_VENDOR) {
+      query = query.is('vendor_id', null)
+    } else if (opts.vendorId) {
+      query = query.eq('vendor_id', opts.vendorId)
+    }
     if (opts.from) query = query.gte('created_at', mxDayStartUtc(opts.from))
     if (opts.to) query = query.lt('created_at', mxNextDayStartUtc(opts.to))
     if (opts.search) {
@@ -203,6 +228,11 @@ export async function listSalesNotesPaged(
   if (opts.companyId) query = query.eq('company_id', opts.companyId)
   if (opts.status) query = query.eq('status', opts.status)
   if (opts.customerId) query = query.eq('customer_id', opts.customerId)
+  if (opts.vendorId === UNASSIGNED_VENDOR) {
+    query = query.is('vendor_id', null)
+  } else if (opts.vendorId) {
+    query = query.eq('vendor_id', opts.vendorId)
+  }
   if (opts.from) query = query.gte('created_at', mxDayStartUtc(opts.from))
   if (opts.to) query = query.lt('created_at', mxNextDayStartUtc(opts.to))
   if (opts.search) {
