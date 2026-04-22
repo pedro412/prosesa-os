@@ -112,7 +112,7 @@ export type NewCatalogItem = Omit<
   'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'created_by' | 'updated_by'
 >
 
-export type CatalogUnit = 'pieza' | 'm2' | 'm' | 'litro' | 'rollo' | 'hora'
+export type CatalogUnit = 'pieza' | 'm2' | 'm' | 'litro' | 'rollo' | 'hora' | 'servicio'
 export type CatalogPricingMode = 'fixed' | 'variable'
 
 export const CATALOG_UNITS: readonly CatalogUnit[] = [
@@ -122,6 +122,7 @@ export const CATALOG_UNITS: readonly CatalogUnit[] = [
   'litro',
   'rollo',
   'hora',
+  'servicio',
 ] as const
 
 export const CATALOG_PRICING_MODES: readonly CatalogPricingMode[] = ['fixed', 'variable'] as const
