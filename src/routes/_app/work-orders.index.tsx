@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { WorkOrdersList } from '@/features/work-orders/WorkOrdersList'
+import { useOrdersUnreadStore } from '@/store/orders-unread-store'
 
 // Mirrors the WorkOrderStatus union from src/lib/queries/work-orders.
 // Kept in sync manually — the union lives in a non-type file so Zod
@@ -42,5 +44,14 @@ export const Route = createFileRoute('/_app/work-orders/')({
 })
 
 function WorkOrdersIndexRoute() {
+  // Reset the unread badge whenever the operator lands on the list
+  // route (LIT-103). Lives on the index — not the layout — because
+  // TanStack keeps the layout mounted across child route swaps, so a
+  // mount effect there would only fire once per session.
+  const markSeen = useOrdersUnreadStore((s) => s.markSeen)
+  useEffect(() => {
+    markSeen()
+  }, [markSeen])
+
   return <WorkOrdersList />
 }
