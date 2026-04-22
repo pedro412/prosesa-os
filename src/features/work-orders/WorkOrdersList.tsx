@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { Eye, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 import {
   ListEmptyCard,
@@ -50,6 +50,7 @@ import {
   promisedDelta,
   statusBadgeVariant,
 } from './status-metadata'
+import { WorkOrderRowMenu } from './WorkOrderRowMenu'
 
 const PAGE_SIZE = 25
 
@@ -541,18 +542,18 @@ function WorkOrderRow({ order, companyLabel: _companyLabel, onOpen }: WorkOrderR
         {formatDateTime(order.updated_at)}
       </TableCell>
       <TableCell className="text-right">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={workOrdersMessages.row.viewAction}
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpen()
-          }}
-          data-testid={`work-order-view-${order.id}`}
-        >
-          <Eye aria-hidden className="size-4" />
-        </Button>
+        <WorkOrderRowMenu
+          workOrderId={order.id}
+          status={status}
+          saldoPendiente={
+            order.sales_note?.saldo_pendiente !== null &&
+            order.sales_note?.saldo_pendiente !== undefined
+              ? Number(order.sales_note.saldo_pendiente)
+              : null
+          }
+          cancelled={cancelled}
+          onOpenDetail={onOpen}
+        />
       </TableCell>
     </TableRow>
   )

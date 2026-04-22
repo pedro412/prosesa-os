@@ -63,6 +63,12 @@ export const workOrdersMessages = {
     noPromisedDate: '—',
     noSaldo: '—',
     viewAction: 'Ver detalle',
+    menuAriaLabel: 'Acciones de la orden',
+    advanceTo: (label: string) => `Avanzar a ${label}`,
+    advanceSuccess: (label: string) => `Orden avanzada a ${label}.`,
+    advanceError: 'No se pudo avanzar la orden.',
+    changeStatus: 'Cambiar estatus…',
+    openDetail: 'Ver detalle',
   },
   detail: {
     backToList: 'Órdenes de trabajo',
