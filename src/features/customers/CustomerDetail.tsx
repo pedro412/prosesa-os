@@ -30,6 +30,8 @@ import {
 } from '@/lib/queries/work-orders'
 import { STATUS_LABELS, statusBadgeVariant } from '@/features/work-orders/status-metadata'
 
+import { SalesNoteDetailDrawer } from '@/features/sales-notes/SalesNoteDetailDrawer'
+
 import { CustomerFormDialog } from './CustomerFormDialog'
 import { customerFiscalStatus } from './fiscal-completeness'
 import { CUSTOMER_FISCAL_FIELD_LABELS, customersMessages } from './messages'
@@ -97,6 +99,10 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
   const messages = customersMessages.detail
   const navigate = useNavigate()
   const [editOpen, setEditOpen] = useState(false)
+  // Local state for the sales-note drawer. Kept in local state (not URL)
+  // so opening a nota doesn't yank the operator to the /sales-notes
+  // route — they stay anchored on the customer while scanning.
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null)
 
   const { data: customer, isPending, isError } = useCustomer(customerId)
 
@@ -177,15 +183,7 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
         </CardContent>
       </Card>
 
-      <NotasSection
-        customerId={customer.id}
-        onOpenNote={(noteId) =>
-          navigate({
-            to: '/sales-notes',
-            search: { openId: noteId, page: 0 },
-          })
-        }
-      />
+      <NotasSection customerId={customer.id} onOpenNote={(noteId) => setOpenNoteId(noteId)} />
 
       <OrdenesSection
         customerId={customer.id}
@@ -198,6 +196,8 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+
+      <SalesNoteDetailDrawer noteId={openNoteId} onClose={() => setOpenNoteId(null)} />
     </div>
   )
 }
