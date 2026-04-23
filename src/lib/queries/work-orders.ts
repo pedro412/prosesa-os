@@ -310,6 +310,41 @@ export async function getWorkOrderLines(workOrderId: string): Promise<SalesNoteL
   return data ?? []
 }
 
+// Work orders that belong to a given sales note. Used by the
+// LIT-43 print surface so the detailed note can list its children and
+// map line.work_order_id → folio for the per-line Orden chip. Kept as
+// a light read — no joins, no nested selects — because we already have
+// the nota header in hand from the caller.
+export interface WorkOrderForNoteRow {
+  id: string
+  folio: string
+  description: string | null
+  priority: string
+  promised_at: string | null
+  cancelled_at: string | null
+}
+
+export async function listWorkOrdersForNote(salesNoteId: string): Promise<WorkOrderForNoteRow[]> {
+  const { data, error } = await supabase
+    .from('work_orders')
+    .select('id, folio, description, priority, promised_at, cancelled_at')
+    .eq('sales_note_id', salesNoteId)
+    .order('folio', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+export function useWorkOrdersForNote(salesNoteId: string | undefined) {
+  return useQuery({
+    queryKey: salesNoteId
+      ? ([...workOrderKeys.all, 'for-note', salesNoteId] as const)
+      : workOrderKeys.all,
+    queryFn: () => listWorkOrdersForNote(salesNoteId as string),
+    enabled: !!salesNoteId,
+    staleTime: 30_000,
+  })
+}
+
 export async function getWorkOrderStatusLog(workOrderId: string): Promise<WorkOrderStatusLog[]> {
   const { data, error } = await supabase
     .from('work_order_status_log')

@@ -13,7 +13,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { PaymentDialog } from '@/features/pos/PaymentDialog'
 import { formatMXN } from '@/lib/format'
@@ -347,24 +346,22 @@ function DrawerBody({ noteId }: { noteId: string }) {
           <Printer aria-hidden className="size-4" />
           {messages.actions.printTicket}
         </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled
-                  data-testid="sales-note-drawer-print-detailed"
-                >
-                  <ReceiptText aria-hidden className="size-4" />
-                  {messages.actions.printDetailed}
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{messages.actions.printDetailedComingSoon}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            // Open the print route in a new tab; the route mounts,
+            // paints, and auto-triggers window.print() — the browser
+            // dialog gives the operator Imprimir vs Guardar como PDF.
+            if (noteId) {
+              window.open(`/print/sales-notes/${noteId}`, '_blank', 'noopener')
+            }
+          }}
+          data-testid="sales-note-drawer-print-detailed"
+        >
+          <ReceiptText aria-hidden className="size-4" />
+          {messages.actions.printDetailed}
+        </Button>
         <Button
           type="button"
           onClick={() => setPaymentOpen(true)}
