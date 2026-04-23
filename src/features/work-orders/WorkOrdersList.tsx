@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
 
 import {
@@ -495,7 +495,21 @@ function WorkOrderRow({ order, companyLabel: _companyLabel, onOpen }: WorkOrderR
       <TableCell className={cn('font-mono text-sm font-medium', cancelled && 'line-through')}>
         {order.folio}
       </TableCell>
-      <TableCell className="text-sm">{customerName}</TableCell>
+      <TableCell className="text-sm">
+        {order.customer?.id ? (
+          <Link
+            to="/customers/$id"
+            params={{ id: order.customer.id }}
+            className="hover:underline"
+            onClick={(e) => e.stopPropagation()}
+            data-testid={`work-order-customer-link-${order.id}`}
+          >
+            {customerName}
+          </Link>
+        ) : (
+          customerName
+        )}
+      </TableCell>
       <TableCell>
         {cancelled ? (
           <Badge variant="destructive">{workOrdersMessages.row.cancelledLabel}</Badge>

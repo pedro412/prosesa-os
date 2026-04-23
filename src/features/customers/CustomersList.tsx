@@ -204,7 +204,16 @@ function CustomerRow({ customer, admin, onEdit, onDelete }: CustomerRowProps) {
 
   return (
     <TableRow data-testid={`customer-row-${customer.id}`}>
-      <TableCell className="font-medium">{customer.nombre}</TableCell>
+      <TableCell className="font-medium">
+        <Link
+          to="/customers/$id"
+          params={{ id: customer.id }}
+          className="hover:underline"
+          data-testid={`customer-link-${customer.id}`}
+        >
+          {customer.nombre}
+        </Link>
+      </TableCell>
       <TableCell className="text-muted-foreground font-mono text-xs">
         {customer.rfc ?? '—'}
       </TableCell>
