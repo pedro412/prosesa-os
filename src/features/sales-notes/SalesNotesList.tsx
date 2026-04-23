@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import { Eye, Plus, Search } from 'lucide-react'
 
 import {
@@ -490,7 +490,21 @@ function SalesNoteRow({
         {formatRowDate(note.created_at)}
       </TableCell>
       <TableCell className="text-sm">{companyLabel}</TableCell>
-      <TableCell className="text-sm">{customerLabel}</TableCell>
+      <TableCell className="text-sm">
+        {note.customer_id ? (
+          <Link
+            to="/customers/$id"
+            params={{ id: note.customer_id }}
+            className="hover:underline"
+            onClick={(e) => e.stopPropagation()}
+            data-testid={`sales-note-customer-link-${note.id}`}
+          >
+            {customerLabel}
+          </Link>
+        ) : (
+          customerLabel
+        )}
+      </TableCell>
       <TableCell className="text-muted-foreground text-sm">{vendorLabel}</TableCell>
       <TableCell className="text-right font-medium tabular-nums">
         {formatMXN(Number(note.total))}
