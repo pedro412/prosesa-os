@@ -89,6 +89,7 @@ export const posMessages = {
       actions: '',
     },
     removeAriaLabel: 'Eliminar concepto',
+    belowCostHint: 'Precio por debajo del costo de catálogo',
     discountTypes: {
       none: 'Sin descuento',
       percent: 'Porcentaje',

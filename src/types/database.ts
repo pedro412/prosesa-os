@@ -123,6 +123,8 @@ export type Database = {
       catalog_items: {
         Row: {
           category_id: string
+          cost: number | null
+          cost_updated_at: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -138,6 +140,8 @@ export type Database = {
         }
         Insert: {
           category_id: string
+          cost?: number | null
+          cost_updated_at?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -153,6 +157,8 @@ export type Database = {
         }
         Update: {
           category_id?: string
+          cost?: number | null
+          cost_updated_at?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null

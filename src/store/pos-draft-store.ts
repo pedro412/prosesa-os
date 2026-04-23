@@ -16,6 +16,10 @@ import { isDraftEmpty, type PosFormState } from '@/features/pos/pos-form-state'
 //   3 — LIT-107: adds `vendorId: string | null`. v2 drafts migrate by
 //       seeding null (Sin vendedor) — the previous draft was captured
 //       before attribution was possible, so that's the accurate state.
+//   4 — LIT-108: adds `catalogCost: number | null` on each PosLine.
+//       v3 drafts migrate by seeding null on every line — the cost
+//       was never captured, so there's nothing to hint against, which
+//       is the honest state.
 //
 // Auto-empty: `setDraft` stores `null` when the incoming state carries
 // no user-meaningful data (see `isDraftEmpty`). This is how post-Cobrar
@@ -38,7 +42,7 @@ export const usePosDraftStore = create<PosDraftStoreState>()(
     }),
     {
       name: 'prosesa-pos-draft',
-      version: 3,
+      version: 4,
       partialize: (state) => ({ draft: state.draft }),
       migrate: (persisted, version) => {
         if (!persisted || typeof persisted !== 'object') return persisted
@@ -68,6 +72,21 @@ export const usePosDraftStore = create<PosDraftStoreState>()(
                 typeof draft.vendorId === 'string' && draft.vendorId.length > 0
                   ? draft.vendorId
                   : null,
+            },
+          }
+        }
+        if (version < 4 && state.draft && typeof state.draft === 'object') {
+          const draft = state.draft as PosFormState
+          state = {
+            draft: {
+              ...draft,
+              lines: (draft.lines ?? []).map((line) => ({
+                ...line,
+                catalogCost:
+                  typeof (line as { catalogCost?: unknown }).catalogCost === 'number'
+                    ? (line as { catalogCost: number }).catalogCost
+                    : null,
+              })),
             },
           }
         }
