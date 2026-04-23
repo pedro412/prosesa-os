@@ -81,14 +81,35 @@ function QuantityInput({ line, onUpdate }: FieldProps) {
 }
 
 function UnitPriceInput({ line, onUpdate }: FieldProps) {
+  // LIT-108: amber inline hint when the operator types a price below
+  // the catalog cost captured at add-time. Non-blocking — Gustavo may
+  // be giving a repeat-customer discount that he owns.
+  const belowCost =
+    line.catalogItemId !== null &&
+    line.catalogCost !== null &&
+    line.catalogCost > 0 &&
+    line.unitPrice > 0 &&
+    line.unitPrice < line.catalogCost
+
   return (
-    <MoneyInput
-      value={line.unitPrice}
-      onChange={(next) => onUpdate(line.id, { unitPrice: next })}
-      className="h-8 w-full"
-      aria-label={posMessages.table.columns.unitPrice}
-      data-testid={`pos-line-price-${line.id}`}
-    />
+    <div className="space-y-1">
+      <MoneyInput
+        value={line.unitPrice}
+        onChange={(next) => onUpdate(line.id, { unitPrice: next })}
+        className="h-8 w-full"
+        aria-label={posMessages.table.columns.unitPrice}
+        aria-invalid={belowCost ? true : undefined}
+        data-testid={`pos-line-price-${line.id}`}
+      />
+      {belowCost && (
+        <p
+          className="text-xs text-amber-700 dark:text-amber-500"
+          data-testid={`pos-line-below-cost-${line.id}`}
+        >
+          {posMessages.table.belowCostHint}
+        </p>
+      )}
+    </div>
   )
 }
 

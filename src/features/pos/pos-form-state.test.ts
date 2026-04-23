@@ -244,6 +244,7 @@ describe('isLineValid', () => {
     discountType: 'none' as const,
     discountValue: 0,
     orderClientId: null,
+    catalogCost: null,
   }
 
   it('accepts a well-formed line', () => {

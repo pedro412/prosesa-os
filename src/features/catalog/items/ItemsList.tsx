@@ -159,7 +159,7 @@ export function ItemsList({ canEdit }: ItemsListProps) {
         </div>
       </div>
 
-      {isPending && <ListLoadingCard skeleton={{ rows: PAGE_SIZE, columns: canEdit ? 7 : 6 }} />}
+      {isPending && <ListLoadingCard skeleton={{ rows: PAGE_SIZE, columns: canEdit ? 8 : 6 }} />}
 
       {isError && (
         <ListErrorCard title={messages.list.loadError} description={messages.toast.genericError} />
@@ -185,6 +185,7 @@ export function ItemsList({ canEdit }: ItemsListProps) {
                 <TableHead>{messages.columns.unit}</TableHead>
                 <TableHead>{messages.columns.pricingMode}</TableHead>
                 <TableHead className="text-right">{messages.columns.price}</TableHead>
+                {canEdit && <TableHead className="text-right">{messages.columns.cost}</TableHead>}
                 <TableHead className="text-center">{messages.columns.active}</TableHead>
                 {canEdit && <TableHead className="sr-only">{messages.columns.actions}</TableHead>}
               </TableRow>
@@ -282,6 +283,11 @@ function ItemRow({ item, category, canEdit, onEdit, onDelete }: ItemRowProps) {
       <TableCell className="text-right tabular-nums">
         {pricingMode === 'variable' ? '—' : formatMXN(Number(item.price))}
       </TableCell>
+      {canEdit && (
+        <TableCell className="text-muted-foreground text-right tabular-nums">
+          {item.cost == null || Number(item.cost) === 0 ? '—' : formatMXN(Number(item.cost))}
+        </TableCell>
+      )}
       <TableCell className="text-center">
         {canEdit ? (
           <Switch

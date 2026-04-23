@@ -44,6 +44,14 @@ export interface PosLine {
   // this client id. Labels ("Orden 1", "Orden 2") are derived from the
   // `orders` array position at render time.
   orderClientId: string | null
+  // LIT-108: catalog cost snapshotted at add-time. Null for freeform
+  // lines, null when the catalog item has no cost captured yet. Used
+  // *only* to power the amber under-cost hint in LineItemsTable — not
+  // persisted, not sent on commit. Snapshotting (instead of a
+  // render-time lookup) keeps the hint stable while the operator
+  // edits the price; the admin changing cost mid-draft is rare and
+  // the stale hint is harmless.
+  catalogCost: number | null
 }
 
 // LIT-37: a work order declared in the draft. The server mints the real
@@ -157,6 +165,11 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
       // operator can still edit it per line (pricing is snapshotted on
       // the line row so catalog edits never rewrite historical notes).
       const unitPrice = item.pricing_mode === 'variable' ? 0 : Number(item.price)
+      // catalog.cost is nullable + defaults to 0. Treat both 0 and
+      // null as "no cost data" so the POS hint stays quiet until Dana
+      // backfills a real cost on this item.
+      const rawCost = item.cost == null ? null : Number(item.cost)
+      const catalogCost = rawCost != null && rawCost > 0 ? rawCost : null
       return {
         ...state,
         lines: [
@@ -173,6 +186,7 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
             discountType: 'none',
             discountValue: 0,
             orderClientId: null,
+            catalogCost,
           },
         ],
       }
@@ -194,6 +208,7 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
             discountType: action.line.discountType ?? 'none',
             discountValue: action.line.discountValue ?? 0,
             orderClientId: null,
+            catalogCost: null,
           },
         ],
       }

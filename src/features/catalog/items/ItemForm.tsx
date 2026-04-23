@@ -25,7 +25,9 @@ import {
   useCreateItem,
   useUpdateItem,
 } from '@/lib/queries/catalog'
+import { cn } from '@/lib/utils'
 
+import { computeMargin } from '../margin'
 import { catalogMessages } from '../messages'
 
 type Mode = 'create' | 'edit'
@@ -46,6 +48,9 @@ interface FormState {
   // Held as a string so the field can be empty during typing; parsed
   // on submit. Ignored when pricing_mode === 'variable'.
   price: string
+  // Same shape as price — blank means "no cost captured yet," which
+  // the margin helper reads as unknown.
+  cost: string
   is_active: boolean
 }
 
@@ -58,11 +63,16 @@ const blankState: FormState = {
   unit: 'pieza',
   pricing_mode: 'fixed',
   price: '',
+  cost: '',
   is_active: true,
 }
 
 function toFormState(item: CatalogItem | undefined): FormState {
   if (!item) return blankState
+  // item.cost comes through as 0 for freshly migrated rows (default).
+  // Map 0 back to '' so Dana sees a blank-and-ready field on edit,
+  // not a literal "0" she has to clear before typing the real cost.
+  const costValue = item.cost == null || Number(item.cost) === 0 ? '' : String(item.cost)
   return {
     name: item.name,
     description: item.description ?? '',
@@ -70,6 +80,7 @@ function toFormState(item: CatalogItem | undefined): FormState {
     unit: item.unit as CatalogUnit,
     pricing_mode: item.pricing_mode as CatalogPricingMode,
     price: String(item.price ?? 0),
+    cost: costValue,
     is_active: item.is_active,
   }
 }
@@ -87,6 +98,7 @@ const schema = z
       CATALOG_PRICING_MODES as readonly [CatalogPricingMode, ...CatalogPricingMode[]]
     ),
     price: z.string(),
+    cost: z.string(),
     is_active: z.boolean(),
   })
   .superRefine((data, ctx) => {
@@ -100,11 +112,37 @@ const schema = z
         })
       }
     }
+    // Cost is always optional — blank means "don't track yet." But if
+    // something is typed it has to be a non-negative number; a typo
+    // like "40," shouldn't silently save as 40.
+    const trimmedCost = data.cost.trim()
+    if (trimmedCost !== '') {
+      if (Number.isNaN(Number(trimmedCost)) || Number(trimmedCost) < 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['cost'],
+          message: formMessages.errors.costInvalid,
+        })
+      }
+    }
   })
 
 const blankToNull = (value: string): string | null => {
   const trimmed = value.trim()
   return trimmed === '' ? null : trimmed
+}
+
+// Parses the cost field into a number for write, or null when the
+// operator left it blank. `null` is distinct from 0 at the DB level —
+// null = "not tracked yet," 0 = "explicitly zero" — but the UI
+// presents them identically via margin 'unknown'. We write null on
+// blank so Dana can tell at a glance (via cost_updated_at) which
+// items have ever been reviewed.
+function parseCost(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (trimmed === '') return null
+  const num = Number(trimmed)
+  return Number.isFinite(num) ? num : null
 }
 
 function buildCreatePayload(state: FormState): NewCatalogItem {
@@ -116,6 +154,7 @@ function buildCreatePayload(state: FormState): NewCatalogItem {
     unit: state.unit,
     pricing_mode: state.pricing_mode,
     price: isVariable ? 0 : Number(state.price.trim()),
+    cost: parseCost(state.cost),
     is_active: state.is_active,
   }
 }
@@ -135,6 +174,13 @@ function buildUpdatePatch(item: CatalogItem, state: FormState) {
   const isVariable = state.pricing_mode === 'variable'
   const newPrice = isVariable ? 0 : Number(state.price.trim())
   if (newPrice !== Number(item.price)) patch.price = newPrice
+
+  // Cost diff: blank in the form means null in the DB. Compare
+  // numerically against the current value; write only when actually
+  // different so we don't spuriously stamp cost_updated_at.
+  const newCost = parseCost(state.cost)
+  const currentCost = item.cost == null ? null : Number(item.cost)
+  if (newCost !== currentCost) patch.cost = newCost
 
   if (state.is_active !== item.is_active) patch.is_active = state.is_active
 
@@ -319,6 +365,26 @@ export function ItemForm({ mode, item, onSaved, onCancel }: ItemFormProps) {
         </div>
       )}
 
+      <div className="space-y-2">
+        <Label htmlFor="item-cost">{formMessages.costLabel}</Label>
+        <Input
+          id="item-cost"
+          value={state.cost}
+          onChange={(e) => onField('cost')(e.target.value)}
+          placeholder={formMessages.costPlaceholder}
+          inputMode="decimal"
+          aria-invalid={fieldErrors.cost ? true : undefined}
+          disabled={submitting}
+          data-testid="item-form-cost"
+        />
+        {fieldErrors.cost ? (
+          <p className="text-destructive text-sm">{fieldErrors.cost}</p>
+        ) : (
+          <p className="text-muted-foreground text-xs">{formMessages.costHint}</p>
+        )}
+        {showPriceField && <MarginLine price={state.price} cost={state.cost} />}
+      </div>
+
       <div className="flex items-center justify-between gap-4 rounded-md border p-3 md:col-span-2">
         <div className="space-y-1">
           <Label htmlFor="item-active">{formMessages.isActiveLabel}</Label>
@@ -343,5 +409,47 @@ export function ItemForm({ mode, item, onSaved, onCancel }: ItemFormProps) {
         </Button>
       </div>
     </form>
+  )
+}
+
+interface MarginLineProps {
+  price: string
+  cost: string
+}
+
+// Live margin hint shown under the cost field in fixed-price mode.
+// Kept self-contained so the parent form stays uncluttered. Uses the
+// same parseCost/Number(price) semantics as the submit handler so the
+// displayed tone matches what will be saved.
+function MarginLine({ price, cost }: MarginLineProps) {
+  const priceNum = Number(price.trim())
+  const costTrimmed = cost.trim()
+  const costNum = costTrimmed === '' ? null : Number(costTrimmed)
+
+  const margin = computeMargin(
+    Number.isFinite(priceNum) ? priceNum : 0,
+    costNum == null || Number.isNaN(costNum) ? null : costNum
+  )
+  if (margin.tone === 'unknown') return null
+
+  if (margin.tone === 'negative') {
+    return (
+      <p className="text-destructive text-sm font-medium" data-testid="item-form-margin-negative">
+        {formMessages.marginBelowCost}
+      </p>
+    )
+  }
+
+  return (
+    <p
+      className={cn(
+        'text-sm',
+        margin.tone === 'thin' ? 'text-amber-700 dark:text-amber-500' : 'text-muted-foreground'
+      )}
+      data-testid={`item-form-margin-${margin.tone}`}
+    >
+      {formMessages.marginLabelPrefix} {margin.pct}%
+      {margin.tone === 'thin' && <span className="ml-2 text-xs">· {formMessages.marginThin}</span>}
+    </p>
   )
 }
