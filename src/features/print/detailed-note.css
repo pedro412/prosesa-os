@@ -1,0 +1,64 @@
+/* LIT-43: print-route stylesheet. Letter size, half-inch margins. The
+ * browser owns the final layout when the user hits Ctrl/Cmd-P — this
+ * just tells it the page shape and hides on-screen chrome when
+ * printing. Screen layout for review before printing stays readable. */
+
+@page {
+  size: letter;
+  margin: 0.5in;
+}
+
+@media print {
+  /* Classic "hide everything, re-show the printed page" trick. Uses
+   * visibility instead of display so position: absolute on the
+   * restored .print-page still works. Catches the TanStack Router
+   * Devtools, React Query Devtools, the Sonner Toaster, and the
+   * BugReport FAB — anything that mounts as a sibling of the route
+   * content — without requiring each one to opt in. */
+  body * {
+    visibility: hidden;
+  }
+  .print-page,
+  .print-page * {
+    visibility: visible;
+  }
+  .print-page {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Hide toolbar affordances that only matter on-screen (e.g. the
+   * "Volver / Imprimir" strip above the doc). */
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Keep tables from breaking mid-row. Chrome still splits if a single
+   * row is taller than the page, which is the right fallback. */
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+
+  /* Trim body defaults so the printed doc doesn't carry screen padding. */
+  body {
+    background: white;
+  }
+}
+
+/* On-screen container — letter-equivalent width so the preview shows
+ * what the printed doc will look like. 7.5in = 8.5in − 2 × 0.5in margin. */
+.print-page {
+  max-width: 7.5in;
+  margin-inline: auto;
+  padding: 0.5in;
+  background: white;
+  color: black;
+}
+
+@media print {
+  .print-page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+}

@@ -23,7 +23,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PaymentDialog } from '@/features/pos/PaymentDialog'
 import { formatMXN } from '@/lib/format'
 import { useCompany } from '@/lib/queries/companies'
@@ -257,19 +256,20 @@ export function WorkOrderDetail({ workOrderId }: WorkOrderDetailProps) {
           >
             {messages.actions.changeStatus}
           </Button>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button type="button" variant="outline" disabled data-testid="work-order-print">
-                    <Printer aria-hidden className="size-4" />
-                    {messages.actions.print}
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{messages.actions.printComingSoon}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (!nota) return
+              const url = `/print/sales-notes/${nota.id}?workOrderId=${workOrderId}`
+              window.open(url, '_blank', 'noopener')
+            }}
+            disabled={!nota}
+            data-testid="work-order-print"
+          >
+            <Printer aria-hidden className="size-4" />
+            {messages.actions.print}
+          </Button>
           {admin && !cancelled && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

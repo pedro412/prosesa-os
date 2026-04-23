@@ -112,7 +112,6 @@ export const salesNotesMessages = {
       registerPayment: 'Registrar pago',
       printTicket: 'Imprimir ticket',
       printDetailed: 'Imprimir nota detallada',
-      printDetailedComingSoon: 'Próximamente (M4-8)',
       cancel: 'Cancelar nota',
       editCustomerAria: 'Editar datos del cliente',
     },

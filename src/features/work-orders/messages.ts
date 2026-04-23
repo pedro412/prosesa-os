@@ -85,7 +85,6 @@ export const workOrdersMessages = {
     actions: {
       changeStatus: 'Cambiar estatus',
       print: 'Imprimir nota detallada',
-      printComingSoon: 'Próximamente (LIT-43)',
       more: 'Más acciones',
       cancel: 'Cancelar orden',
       registerPayment: 'Registrar pago',
