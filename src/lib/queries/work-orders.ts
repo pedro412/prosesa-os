@@ -320,6 +320,10 @@ export interface WorkOrderForNoteRow {
   folio: string
   description: string | null
   priority: string
+  // LIT-102: included so the sales-note drawer can render a per-order
+  // status badge with the canonical work-orders metadata helpers. The
+  // print surface ignores it — cost is one extra column over the wire.
+  status: string
   promised_at: string | null
   cancelled_at: string | null
 }
@@ -327,7 +331,7 @@ export interface WorkOrderForNoteRow {
 export async function listWorkOrdersForNote(salesNoteId: string): Promise<WorkOrderForNoteRow[]> {
   const { data, error } = await supabase
     .from('work_orders')
-    .select('id, folio, description, priority, promised_at, cancelled_at')
+    .select('id, folio, description, priority, status, promised_at, cancelled_at')
     .eq('sales_note_id', salesNoteId)
     .order('folio', { ascending: true })
   if (error) throw error
