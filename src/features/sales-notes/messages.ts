@@ -74,6 +74,7 @@ export const salesNotesMessages = {
       lineas: 'Conceptos',
       pagos: 'Pagos',
       totales: 'Totales',
+      ordenes: 'Órdenes de trabajo',
     },
     fields: {
       date: 'Fecha',
@@ -104,6 +105,12 @@ export const salesNotesMessages = {
     empty: {
       lines: 'Sin conceptos.',
       payments: 'Aún no hay pagos registrados.',
+    },
+    orders: {
+      viewAction: 'Ver orden',
+      urgente: 'Urgente',
+      cancelledLabel: 'Cancelada',
+      noPromisedDate: 'Sin fecha prometida',
     },
     loading: 'Cargando nota…',
     loadError: 'No se pudo cargar la nota.',

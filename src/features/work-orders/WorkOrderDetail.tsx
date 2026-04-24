@@ -96,6 +96,17 @@ function notaStatusVariant(
   }
 }
 
+// Human-readable labels for sales-note status. Kept local to this
+// surface — the sales-notes feature owns the canonical copy, but
+// duplicating four strings avoids a cross-feature import for a
+// two-surface use case.
+const SALES_NOTE_STATUS_LABELS: Record<SalesNoteStatus, string> = {
+  pagada: 'Pagada',
+  pendiente: 'Pendiente',
+  abonada: 'Abonada',
+  cancelada: 'Cancelada',
+}
+
 export function WorkOrderDetail({ workOrderId }: WorkOrderDetailProps) {
   const profile = useCurrentProfile()
   const admin = isAdmin(profile.data)
@@ -382,14 +393,21 @@ export function WorkOrderDetail({ workOrderId }: WorkOrderDetailProps) {
               <CardContent className="space-y-2 text-sm">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-muted-foreground">{messages.nota.folio}</span>
-                  <Link
-                    to="/sales-notes"
-                    search={{ openId: nota.id }}
-                    className="font-mono font-medium underline underline-offset-2 hover:no-underline"
-                    data-testid="work-order-nota-link"
-                  >
-                    {nota.folio}
-                  </Link>
+                  <span className="flex items-center gap-2">
+                    {(nota.status as SalesNoteStatus) === 'cancelada' && (
+                      <Badge variant="destructive" data-testid="work-order-nota-cancelled-badge">
+                        {SALES_NOTE_STATUS_LABELS.cancelada}
+                      </Badge>
+                    )}
+                    <Link
+                      to="/sales-notes"
+                      search={{ openId: nota.id }}
+                      className="font-mono font-medium underline underline-offset-2 hover:no-underline"
+                      data-testid="work-order-nota-link"
+                    >
+                      {nota.folio}
+                    </Link>
+                  </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-muted-foreground">{messages.nota.total}</span>
@@ -409,7 +427,7 @@ export function WorkOrderDetail({ workOrderId }: WorkOrderDetailProps) {
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-muted-foreground">{messages.nota.status}</span>
                   <Badge variant={notaStatusVariant(nota.status as SalesNoteStatus)}>
-                    {nota.status}
+                    {SALES_NOTE_STATUS_LABELS[nota.status as SalesNoteStatus]}
                   </Badge>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">

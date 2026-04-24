@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Ban, Printer, ReceiptText } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { Ban, ChevronRight, Printer, ReceiptText } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -15,13 +16,20 @@ import {
 } from '@/components/ui/sheet'
 import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { PaymentDialog } from '@/features/pos/PaymentDialog'
+import {
+  promisedDelta,
+  STATUS_LABELS as WORK_ORDER_STATUS_LABELS,
+  statusBadgeVariant as workOrderStatusVariant,
+} from '@/features/work-orders/status-metadata'
 import { formatMXN } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { useCompany } from '@/lib/queries/companies'
 import { useCustomer } from '@/lib/queries/customers'
 import { useReprintTicket } from '@/lib/print/use-reprint-ticket'
 import { type CardType, type PaymentMethod } from '@/lib/queries/payments'
 import { isAdmin, useCurrentProfile } from '@/lib/queries/profiles'
 import { type SalesNoteStatus, useAddPaymentsToNote, useSalesNote } from '@/lib/queries/sales-notes'
+import { useWorkOrdersForNote, type WorkOrderStatus } from '@/lib/queries/work-orders'
 import { formatIvaRate, roundMoney } from '@/lib/tax'
 
 import { CancelNoteDialog } from './CancelNoteDialog'
@@ -80,6 +88,10 @@ function DrawerBody({ noteId }: { noteId: string }) {
   const { data: note, isPending, isError } = useSalesNote(noteId)
   const { data: company } = useCompany(note?.company_id)
   const { data: customer } = useCustomer(note?.customer_id ?? undefined)
+  // LIT-102: work orders on the same nota. Reuses the LIT-43 hook, no
+  // new query. `undefined` while loading; empty array = counter-only
+  // sale, which skips the whole section at render time.
+  const { data: workOrders } = useWorkOrdersForNote(noteId)
 
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
@@ -267,6 +279,64 @@ function DrawerBody({ noteId }: { noteId: string }) {
             </ul>
           )}
         </section>
+
+        {workOrders && workOrders.length > 0 && (
+          <section className="space-y-2" data-testid="sales-note-drawer-orders">
+            <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+              {messages.sections.ordenes}
+            </h3>
+            <ul className="divide-y rounded-md border">
+              {workOrders.map((wo) => {
+                const cancelled = wo.cancelled_at !== null
+                const status = wo.status as WorkOrderStatus
+                const delta = promisedDelta({
+                  promised_at: wo.promised_at,
+                  status: wo.status,
+                  cancelled_at: wo.cancelled_at,
+                })
+                return (
+                  <li key={wo.id} className="flex items-center gap-3 px-3 py-2">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-mono text-sm font-medium',
+                            cancelled && 'text-muted-foreground line-through'
+                          )}
+                        >
+                          {wo.folio}
+                        </span>
+                        {cancelled ? (
+                          <Badge variant="destructive">{messages.orders.cancelledLabel}</Badge>
+                        ) : (
+                          <Badge variant={workOrderStatusVariant(status)}>
+                            {WORK_ORDER_STATUS_LABELS[status]}
+                          </Badge>
+                        )}
+                        {wo.priority === 'urgente' && !cancelled && (
+                          <Badge variant="destructive">{messages.orders.urgente}</Badge>
+                        )}
+                      </div>
+                      {delta && <p className="text-muted-foreground text-xs">{delta.label}</p>}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                      data-testid={`sales-note-drawer-order-link-${wo.id}`}
+                    >
+                      <Link to="/work-orders/$id" params={{ id: wo.id }}>
+                        {messages.orders.viewAction}
+                        <ChevronRight aria-hidden className="size-4" />
+                      </Link>
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
 
         <section className="space-y-2" data-testid="sales-note-drawer-payments">
           <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">

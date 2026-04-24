@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
 import {
@@ -541,13 +542,9 @@ export function PosPage() {
                       asChild
                       data-testid={`pos-work-order-link-${wo.id}`}
                     >
-                      {/* Detail route will be wired in LIT-42. Using an
-                       * anchor keeps the CTA present even before the
-                       * route exists; the href is a stable pattern
-                       * the router can later intercept. */}
-                      <a href={`/ordenes-de-trabajo/${wo.id}`}>
+                      <Link to="/work-orders/$id" params={{ id: wo.id }}>
                         {posMessages.submit.workOrderLink(wo.folio)}
-                      </a>
+                      </Link>
                     </Button>
                   </li>
                 ))}
