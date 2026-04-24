@@ -809,6 +809,39 @@ export type Database = {
         Args: { p_full_name: string }
         Returns: undefined
       }
+      update_sales_note_requires_invoice: {
+        Args: { p_id: string; p_requires_invoice: boolean }
+        Returns: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          folio: string
+          id: string
+          iva: number
+          iva_inclusive_snapshot: boolean
+          iva_rate_snapshot: number
+          notes: string | null
+          paid_sum: number
+          requires_invoice: boolean
+          saldo_pendiente: number | null
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          updated_by: string | null
+          vendor_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sales_notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_work_order_status: {
         Args: { p_new_status: string; p_note?: string; p_wo_id: string }
         Returns: {
