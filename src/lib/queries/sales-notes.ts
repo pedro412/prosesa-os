@@ -515,3 +515,44 @@ export function useCancelSalesNote() {
     },
   })
 }
+
+// ============================================================================
+// Write: updateRequiresInvoice (LIT-99)
+// ============================================================================
+
+// Narrow post-commit flip of `sales_notes.requires_invoice`. Everything
+// else on the nota stays frozen per CLAUDE.md §8. Calls the
+// SECURITY DEFINER RPC so both `admin` and `ventas` can operate the
+// switch without widening the admin-only UPDATE policy on sales_notes.
+// The RPC rejects cancelled notes with errcode 22023; callers surface
+// the Spanish message verbatim.
+export async function updateSalesNoteRequiresInvoice(
+  id: string,
+  requiresInvoice: boolean
+): Promise<SalesNote> {
+  const { data, error } = await supabase.rpc('update_sales_note_requires_invoice', {
+    p_id: id,
+    p_requires_invoice: requiresInvoice,
+  })
+  if (error) throw error
+  // PL/pgSQL `returns public.sales_notes` surfaces as a single row
+  // object (not an array) through supabase-js.
+  if (!data) throw new Error('update_sales_note_requires_invoice: empty response')
+  return data as SalesNote
+}
+
+export function useUpdateRequiresInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, requiresInvoice }: { id: string; requiresInvoice: boolean }) =>
+      updateSalesNoteRequiresInvoice(id, requiresInvoice),
+    onSuccess: (note) => {
+      queryClient.setQueryData(
+        salesNoteKeys.detail(note.id),
+        (prev: SalesNoteWithDetails | null) => (prev ? { ...prev, ...note } : prev)
+      )
+      queryClient.invalidateQueries({ queryKey: salesNoteKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: salesNoteKeys.detail(note.id) })
+    },
+  })
+}

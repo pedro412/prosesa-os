@@ -33,6 +33,7 @@ import { useWorkOrdersForNote, type WorkOrderStatus } from '@/lib/queries/work-o
 import { formatIvaRate, roundMoney } from '@/lib/tax'
 
 import { CancelNoteDialog } from './CancelNoteDialog'
+import { EditRequiresInvoiceDialog } from './EditRequiresInvoiceDialog'
 import { salesNotesMessages } from './messages'
 
 interface SalesNoteDetailDrawerProps {
@@ -96,6 +97,7 @@ function DrawerBody({ noteId }: { noteId: string }) {
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [customerEditOpen, setCustomerEditOpen] = useState(false)
+  const [requiresInvoiceEditOpen, setRequiresInvoiceEditOpen] = useState(false)
 
   const addPayments = useAddPaymentsToNote()
   const reprint = useReprintTicket()
@@ -218,7 +220,20 @@ function DrawerBody({ noteId }: { noteId: string }) {
               )}
             </dd>
             <dt className="text-muted-foreground">{messages.fields.requiresInvoice}</dt>
-            <dd>{note.requires_invoice ? messages.values.yes : messages.values.no}</dd>
+            <dd className="flex flex-wrap items-center gap-2">
+              <span>{note.requires_invoice ? messages.values.yes : messages.values.no}</span>
+              {!cancelled && (
+                <button
+                  type="button"
+                  className="text-primary text-xs underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
+                  onClick={() => setRequiresInvoiceEditOpen(true)}
+                  aria-label={salesNotesMessages.requiresInvoiceDialog.triggerAria}
+                  data-testid="sales-note-drawer-requires-invoice-edit"
+                >
+                  {salesNotesMessages.requiresInvoiceDialog.trigger}
+                </button>
+              )}
+            </dd>
             <dt className="text-muted-foreground">{messages.fields.date}</dt>
             <dd>{formatDate(note.created_at)}</dd>
             {note.notes && (
@@ -491,6 +506,14 @@ function DrawerBody({ noteId }: { noteId: string }) {
           onSaved={() => setCustomerEditOpen(false)}
         />
       )}
+
+      <EditRequiresInvoiceDialog
+        open={requiresInvoiceEditOpen}
+        onOpenChange={setRequiresInvoiceEditOpen}
+        noteId={noteId}
+        currentValue={note.requires_invoice}
+        customer={customer ?? null}
+      />
     </>
   )
 }

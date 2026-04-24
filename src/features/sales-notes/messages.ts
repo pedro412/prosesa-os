@@ -134,6 +134,27 @@ export const salesNotesMessages = {
       missingCompany: 'No se pudo determinar la empresa de la nota.',
     },
   },
+  requiresInvoiceDialog: {
+    trigger: 'Editar',
+    triggerAria: 'Editar si la nota requiere factura',
+    title: '¿Requiere factura?',
+    description:
+      'Cambia si esta nota se debe facturar. Esto alimenta el flujo de facturación pendiente en el módulo de Dana.',
+    switchLabel: 'Requiere factura',
+    fiscal: {
+      noCustomerTitle: 'Sin cliente adjunto',
+      noCustomerDescription:
+        'Esta nota no tiene cliente; Dana tendrá que adjuntar uno antes de poder facturar.',
+      incompleteTitle: 'Faltan datos fiscales del cliente',
+      incompleteDescription: (fields: string) =>
+        `Para facturar en Contpaqi, el cliente necesita: ${fields}. Puedes editar los datos del cliente desde la nota.`,
+    },
+    cancel: 'Cerrar',
+    confirm: 'Guardar',
+    submitting: 'Guardando…',
+    toastSuccess: 'Actualizado.',
+    toastError: 'No se pudo actualizar.',
+  },
   cancelDialog: {
     title: '¿Cancelar nota?',
     body: (folio: string) =>
