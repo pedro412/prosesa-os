@@ -14,7 +14,7 @@ Business management system for **Prosesa Diseño y Publicidad** — a print and 
 - **Multi-company** — two legal entities (razones sociales), shared catalog and inventory, independent folio sequences
 - **Sales notes** — auto folio, tax breakdown, thermal and detailed print
 - **Work orders** — 7-stage pipeline with backward (rework) transitions and a full status log
-- **Material inventory** — stock levels, minimum-threshold alerts, auto-deduct on production, append-only movement log
+- **Material inventory** — stock levels, minimum-threshold alerts, operator-recorded salidas linked to work orders, append-only movement log
 - **Daily cash reconciliation (corte de caja)** — one-click report, replaces the Excel
 - **User management** — two roles: `admin`, `ventas`
 

@@ -311,7 +311,9 @@ Cotizado → Anticipo recibido → En diseño → En producción → En instalac
 
 ### 4.6 Material Inventory
 
-**Purpose**: Track stock of production materials and alert when running low.
+> **Implementation source of truth**: [`docs/m5-design.md`](./docs/m5-design.md). This SPEC section captures the business intent; the design doc resolves the operator model, schema shape, and Phase 1 scope (no BOM, no auto-deduction).
+
+**Purpose**: Give Dana 10-second visibility into stock so she can answer "do we have everything for this order?" without leaving her desk, and surface low-stock alerts before the next material problem repeats.
 
 **What is tracked**:
 
@@ -324,24 +326,24 @@ Cotizado → Anticipo recibido → En diseño → En producción → En instalac
 
 **Stock movement types**:
 
-- **Entrada** (stock in): Purchase received, manual adjustment
-- **Salida por orden** (stock out - order): Automatic decrement linked to a work order
-- **Salida manual** (stock out - manual): Adjustment, damage, internal use
-- **Ajuste** (adjustment): Correction after physical count
+- **Entrada** (stock in): Purchase received, manual restock.
+- **Salida por orden** (stock out - order): Operator-recorded decrement linked to a work order folio. Dana picks the material, the quantity, and the order it was consumed for.
+- **Salida manual** (stock out - manual): Damage, internal use, mermas. Reason required.
+- **Ajuste** (adjustment): Correction after physical count. Reason required.
 
-**Every movement is logged** with: date, type, quantity, work order reference (if applicable), user, notes. This is a non-deletable audit trail.
+**Every movement is logged** with: date, type, quantity, work order reference (if applicable), user, reason (required for `salida_manual` and `ajuste`). This is a non-deletable audit trail.
 
-**Automatic decrement flow**:
+**Salida por orden flow** (operator-driven):
 
-- When a work order is created or moved to "En producción", materials can be linked to it
-- The operator selects which materials and quantities are being used
-- Stock is decremented and the movement is logged with the work order reference
-- If stock would go below zero, show a warning but allow it (materials might already be physically used)
+- Dana opens the inventory module (or the "Materiales consumidos" tab on a work order), picks the material, types the quantity, and selects/types the work order folio.
+- A single `salida_por_orden` movement is recorded; the work order's full consumption is the set of movements joined by `work_order_id`.
+- If stock would go below zero, show an inline warning ("esta salida deja el stock en X") but do not block — the material may already have been physically pulled.
+- There is **no automatic decrement on work order status transitions** in Phase 1. Auto-decrement requires a bill-of-materials (BOM) linking catalog items to expected materials, which is Phase 2 (see `docs/m5-design.md` §7 and `docs/phase-2-upsells.md`).
 
 **Manual adjustment**:
 
-- Admin can manually adjust stock (e.g., after physical count)
-- Requires a reason/note
+- Admin can manually adjust stock via the "Ajustar existencia" dialog (e.g., after physical count, breakage, internal use).
+- Reason is required for `salida_manual` and `ajuste`.
 
 **Alerts**:
 
