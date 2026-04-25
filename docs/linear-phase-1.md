@@ -45,7 +45,7 @@ Each milestone ends with a staging deploy and a Karina QA pass before the next m
 | M2  | Core entities               | Two companies seeded with fiscal data; company selector in header; customers CRUD (incl. Público en general sentinel); catalog CRUD.                                                         |
 | M3  | Counter sales POS           | Sales notes with per-company folios; catalog + freeform line items; line discounts; IVA breakdown explicit and configurable per company; mixto payments; thermal ticket print; history view. |
 | M4  | Project sales & work orders | "Genera orden de trabajo" flow; advance + saldo tracking; work orders with 7-stage pipeline, status log, backward transitions; detailed note PDF; list view with filters.                    |
-| M5  | Inventory                   | Materials catalog with min threshold; append-only movements (4 types); auto-deduction linked to work orders; low-stock view + nav badge; manual adjustments with reason.                     |
+| M5  | Inventory                   | Materials catalog with min threshold; append-only movements (4 types); operator-driven salidas linked to work orders; low-stock view + nav badge; manual adjustments with reason.            |
 | M6  | Cash reconciliation         | Opening cash declaration; end-of-day report with reconciliation vs counted cash; per-company and per-method breakdown; print; history.                                                       |
 | M7  | Polish & stretch            | Admin MFA enforced; Privacy Notice published; Cloudflare + domain (once decided). Stretch: Kanban work-order view, lightweight dashboard.                                                    |
 
@@ -130,13 +130,18 @@ Each milestone ends with a staging deploy and a Karina QA pass before the next m
 
 **Epic**: `[M5] Materials & inventory`
 
-| ID   | Title                              | Acceptance                                                                                                                                                        |
-| ---- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M5-1 | `materials` schema + categories    | Fields per SPEC §4.6; `min_threshold`; `unit`; `is_active`. Shared across both companies.                                                                         |
-| M5-2 | `inventory_movements` append-only  | Types: `entrada`, `salida_por_orden`, `salida_manual`, `ajuste`. Links to `work_order_id` when applicable. RLS: insert-only, no update/delete.                    |
-| M5-3 | Link materials to work order       | Selector on work order (or production-status transition) that records a `salida_por_orden` movement with quantity and notes. Stock can go negative (warn, allow). |
-| M5-4 | Low-stock view + nav badge         | Badge counter in nav showing count of materials below threshold; dedicated filtered view; red row highlight per SPEC §4.6.                                        |
-| M5-5 | Materials CRUD + manual adjustment | Admin can adjust stock with required reason — creates an `ajuste` movement. `ventas` role is read-only.                                                           |
+> Architectural design and rationale: [`docs/m5-design.md`](./m5-design.md). Read that first — the doc resolves materials-vs-catalog separation, the operator-driven (not event-driven) decrement model, and the deliberate skip of `work_order_materials` / BOM in Phase 1.
+
+| ID   | Title                                               | Acceptance                                                                                                                                                                                                                                                                                                                   |
+| ---- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M5-1 | `material_categories` + `materials` schema + RLS    | Tables per `m5-design.md` §4.1, §4.2. Six categories seeded (Lonas, Vinil, Tintas, Sustratos, Papel, Estructura). RLS: SELECT authenticated, INSERT/UPDATE admin, no DELETE. Triggers: `set_updated_at`, `stamp_actor_columns`, `audit.attach`. Shared across both companies (no `company_id`).                              |
+| M5-2 | `inventory_movements` schema + stock-update trigger | Table per `m5-design.md` §4.3 in the same migration as M5-1. Signed `quantity` with sign-aligned CHECK per `movement_type`. RLS: SELECT authenticated, INSERT admin, no UPDATE/DELETE. AFTER INSERT trigger updates `materials.current_stock`. `audit.attach`. Reserved `purchase_order_id` column with no FK (Phase 2).     |
+| M5-3 | Materials CRUD UI (admin) + `ventas` read-only      | List with category filter, name search, active toggle, soft-delete. Form: name, description, category, unit, `current_stock` (set on create only — subsequent changes go through movements), `min_threshold`, location. `ventas` role sees a read-only list.                                                                 |
+| M5-4 | Manual adjustment UI (admin only)                   | "Ajustar existencia" dialog from material detail. Fields: tipo (`entrada`, `salida_manual`, `ajuste`), cantidad (positive; sign applied by tipo before insert), reason (required for `salida_manual` and `ajuste`). Writes one `inventory_movements` row; trigger updates `current_stock`.                                   |
+| M5-5 | Low-stock view + nav badge                          | Realtime subscription pattern from LIT-103. Badge in nav: count of materials with `current_stock <= min_threshold and is_active and deleted_at is null` (uses partial index from `m5-design.md` §4.2). Dedicated filtered view with red row highlight per SPEC §4.6.                                                         |
+| M5-6 | Link salida to work order                           | "Registrar salida por orden" dialog from (a) inventory module material detail, (b) work order detail "Materiales consumidos" tab. Fields: material, cantidad, work_order folio (preselected when entered from order detail), optional reason. Writes one `salida_por_orden` row. Stock can go negative — warn, do not block. |
+
+**Implementation order**: M5-1 → M5-2 → M5-3 → M5-4 → M5-5 → M5-6 → LIT-98. M5-3 ships before M5-5/M5-6 so Dana can populate inventory from her Excel; without data, the badge and the salida dialog have nothing to render.
 
 ---
 
