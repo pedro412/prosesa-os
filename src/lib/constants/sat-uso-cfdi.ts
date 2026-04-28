@@ -1,5 +1,5 @@
 // SAT c_UsoCFDI 4.0 catalog — the claves we persist on customers for
-// Dana's Contpaqi workbench flow and, if Facturapi ever ships, for
+// Danna's Contpaqi workbench flow and, if Facturapi ever ships, for
 // in-app CFDI issuance.
 //
 // Source: SAT's published c_UsoCFDI table (CFDI 4.0). Only entries

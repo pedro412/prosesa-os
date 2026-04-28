@@ -1,4 +1,4 @@
-// LIT-108: pure margin math shared by the catalog form (Dana's
+// LIT-108: pure margin math shared by the catalog form (Danna's
 // pricing view) and — indirectly — the POS under-cost hint.
 //
 // "Margin" here is the classic retail gross margin: (price − cost) /
@@ -7,7 +7,7 @@
 //
 // `cost === null || cost <= 0` → 'unknown'. We treat 0 the same as
 // null because the migration's default is 0 and the ticket explicitly
-// lets Dana backfill over time. Showing "Margen: 100%" for every
+// lets Danna backfill over time. Showing "Margen: 100%" for every
 // unpopulated item would be misleading.
 //
 // `price <= 0` → 'unknown' too. Dividing by zero is undefined, and

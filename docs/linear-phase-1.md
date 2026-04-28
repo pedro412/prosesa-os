@@ -82,7 +82,7 @@ Each milestone ends with a staging deploy and a Karina QA pass before the next m
 | ID   | Title                                  | Acceptance                                                                                                                                                                                                         |
 | ---- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | M2-1 | `companies` table + settings           | Fields: `id`, `nombre_comercial`, `razon_social`, `rfc`, `regimen_fiscal`, `direccion_fiscal`, `logo_url`, `iva_rate` (default `0.16`), `iva_inclusive` (default `true`). RLS: admin write, everyone read.         |
-| M2-2 | Seed the two legal entities            | Migration seeds both razones sociales. Placeholder fiscal data captured from Dana before shipping.                                                                                                                 |
+| M2-2 | Seed the two legal entities            | Migration seeds both razones sociales. Placeholder fiscal data captured from Danna before shipping.                                                                                                                |
 | M2-3 | Active-company context + selector      | Persistent dropdown in header; choice stored in localStorage + React context; guards prevent mutations without a selected company.                                                                                 |
 | M2-4 | Per-company folio sequence infra       | Per-company sequence table or DB function `next_folio(company_id, doc_type)` returning monotonic `A-0001` style folios inside a transaction. Tested against concurrent inserts.                                    |
 | M2-5 | `customers` table + Público en general | Fields: `id`, `nombre`, `rfc`, `razon_social`, `regimen_fiscal`, `cp_fiscal`, `telefono`, `email`, `requiere_factura`, `notas`. Seed row per company with `rfc = 'XAXX010101000'` and name `"Público en general"`. |
@@ -141,7 +141,7 @@ Each milestone ends with a staging deploy and a Karina QA pass before the next m
 | M5-5 | Low-stock view + nav badge                          | Realtime subscription pattern from LIT-103. Badge in nav: count of materials with `current_stock <= min_threshold and is_active and deleted_at is null` (uses partial index from `m5-design.md` §4.2). Dedicated filtered view with red row highlight per SPEC §4.6.                                                         |
 | M5-6 | Link salida to work order                           | "Registrar salida por orden" dialog from (a) inventory module material detail, (b) work order detail "Materiales consumidos" tab. Fields: material, cantidad, work_order folio (preselected when entered from order detail), optional reason. Writes one `salida_por_orden` row. Stock can go negative — warn, do not block. |
 
-**Implementation order**: M5-1 → M5-2 → M5-3 → M5-4 → M5-5 → M5-6 → LIT-98. M5-3 ships before M5-5/M5-6 so Dana can populate inventory from her Excel; without data, the badge and the salida dialog have nothing to render.
+**Implementation order**: M5-1 → M5-2 → M5-3 → M5-4 → M5-5 → M5-6 → LIT-98. M5-3 ships before M5-5/M5-6 so Danna can populate inventory from her Excel; without data, the badge and the salida dialog have nothing to render.
 
 ---
 

@@ -70,7 +70,7 @@ const blankState: FormState = {
 function toFormState(item: CatalogItem | undefined): FormState {
   if (!item) return blankState
   // item.cost comes through as 0 for freshly migrated rows (default).
-  // Map 0 back to '' so Dana sees a blank-and-ready field on edit,
+  // Map 0 back to '' so Danna sees a blank-and-ready field on edit,
   // not a literal "0" she has to clear before typing the real cost.
   const costValue = item.cost == null || Number(item.cost) === 0 ? '' : String(item.cost)
   return {
@@ -136,7 +136,7 @@ const blankToNull = (value: string): string | null => {
 // operator left it blank. `null` is distinct from 0 at the DB level —
 // null = "not tracked yet," 0 = "explicitly zero" — but the UI
 // presents them identically via margin 'unknown'. We write null on
-// blank so Dana can tell at a glance (via cost_updated_at) which
+// blank so Danna can tell at a glance (via cost_updated_at) which
 // items have ever been reviewed.
 function parseCost(raw: string): number | null {
   const trimmed = raw.trim()
