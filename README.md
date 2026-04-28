@@ -216,11 +216,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are `YYY
 #### Changed
 
 - SPEC §4.1 realigned — company selector is per-document, not a persistent header indicator (LIT-64).
-- `customerFiscalStatus` added as the read-time fiscal-completeness check, reused by POS and queued for Dana's Contpaqi workbench (LIT-90).
+- `customerFiscalStatus` added as the read-time fiscal-completeness check, reused by POS and queued for Danna's Contpaqi workbench (LIT-90).
 
 #### Decided
 
-- `CLAUDE.md` §17: Facturapi **deferred indefinitely**. Dana keeps Contpaqi permanently; ProsesaOS becomes the pre-invoice data workbench + manual status ledger.
+- `CLAUDE.md` §17: Facturapi **deferred indefinitely**. Danna keeps Contpaqi permanently; ProsesaOS becomes the pre-invoice data workbench + manual status ledger.
 
 **Exit criterion met:** a counter sale can be completed end-to-end (select items → charge → print thermal ticket) with a valid folio and an immutable record. Target was 2026-05-05; delivered ~2.5 weeks early.
 

@@ -8,13 +8,13 @@
 
 ## 1. Context
 
-Phase 1's M5 ships material tracking with low-stock alerts and an audit trail of movements. The original SPEC describes "automatic decrement when a work order moves to en_produccion" _and_ "operator selects which materials and quantities are being used" — these read like two separate flows because they are.
+Phase 1's M5 ships material tracking with low-stock alerts and an audit trail of movements. The original SPEC describes "automatic decrement when a work order moves to en*produccion" \_and* "operator selects which materials and quantities are being used" — these read like two separate flows because they are.
 
 Field interviews with the client clarified the real shop operating model:
 
-- **Dana (administration) is the inventory operator-of-record.** All material movements pass through her, not through production. Today she keeps an Excel sheet for inks because production was disorderly with them; the rest of the materials are tracked by ad-hoc memory.
-- **The cotization flow is freeform.** Gustavo at reception quotes from experience without consulting stock. The order is then handed to Dana, who reviews "do we have everything?" — typically by walking to the workshop. When something is missing (e.g., the galvanized sheet for a sign), she places the supplier order. This is where the SPEC §2.1 incident originated: an advance was collected, no one verified stock, the material was missing, the job was delayed 10 days.
-- **The material problem the system must solve is not "auto-deduct on production transition." It is "give Dana 10-second visibility into stock so she can answer the viability question without leaving her desk."** Once stock is visible and current, manual deductions are cheap; automatic deduction is over-engineering for a make-to-order shop with freeform line items.
+- **Danna (administration) is the inventory operator-of-record.** All material movements pass through her, not through production. Today she keeps an Excel sheet for inks because production was disorderly with them; the rest of the materials are tracked by ad-hoc memory.
+- **The cotization flow is freeform.** Gustavo at reception quotes from experience without consulting stock. The order is then handed to Danna, who reviews "do we have everything?" — typically by walking to the workshop. When something is missing (e.g., the galvanized sheet for a sign), she places the supplier order. This is where the SPEC §2.1 incident originated: an advance was collected, no one verified stock, the material was missing, the job was delayed 10 days.
+- **The material problem the system must solve is not "auto-deduct on production transition." It is "give Danna 10-second visibility into stock so she can answer the viability question without leaving her desk."** Once stock is visible and current, manual deductions are cheap; automatic deduction is over-engineering for a make-to-order shop with freeform line items.
 
 That reframing carries through every design decision below.
 
@@ -56,7 +56,7 @@ No trigger fires on work order status transitions. There is no "moving to `en_pr
 Rationale:
 
 - Auto-decrement requires knowing what to decrement, which requires BOM.
-- Dana (the actual operator) does not work from a status board; she works from material requests and physical movement.
+- Danna (the actual operator) does not work from a status board; she works from material requests and physical movement.
 - Status changes belong to producción/sales; material movements belong to administration. Coupling them couples two roles that don't share a workflow today.
 
 ### 3.3 No `work_order_materials` table
@@ -67,9 +67,9 @@ The relationship between materials and work orders is captured directly on `inve
 
 ### 3.4 The operator UX lives in the inventory module, not on the work order
 
-The primary path to record a `salida_por_orden` is in the inventory module: Dana picks the material, the quantity, and types/picks the work order folio. Secondary path: a button on the work order detail ("Materiales consumidos en esta orden") that opens the same dialog with the folio prefilled.
+The primary path to record a `salida_por_orden` is in the inventory module: Danna picks the material, the quantity, and types/picks the work order folio. Secondary path: a button on the work order detail ("Materiales consumidos en esta orden") that opens the same dialog with the folio prefilled.
 
-This matches Dana's workflow ("alguien me pide tinta roja, descuento") rather than imposing a workflow ("when I open the work order I should think about materials").
+This matches Danna's workflow ("alguien me pide tinta roja, descuento") rather than imposing a workflow ("when I open the work order I should think about materials").
 
 ### 3.5 Reposition for Phase 2 without migration
 
@@ -83,7 +83,7 @@ The schema reserves `inventory_movements.purchase_order_id` (nullable, no FK in 
 
 ### 4.1 `material_categories`
 
-Top-level grouping for the materials list (mirrors `catalog_categories`). Seeded with the six categories from SPEC §4.6; Dana can edit.
+Top-level grouping for the materials list (mirrors `catalog_categories`). Seeded with the six categories from SPEC §4.6; Danna can edit.
 
 ```sql
 create table public.material_categories (
@@ -162,7 +162,7 @@ Notes:
 
 - No `company_id`. Inventory is shared across razones sociales (CLAUDE.md §6).
 - `unit` is a CHECK list, not an enum, so adding units later is a one-line ALTER (same pattern as `catalog_items.unit`). Confirm the eight values with the client.
-- `location` is a free-form text field for "estante 3", "bodega chica", etc. — Dana asked for it implicitly when she said she walks to the workshop to check. Optional.
+- `location` is a free-form text field for "estante 3", "bodega chica", etc. — Danna asked for it implicitly when she said she walks to the workshop to check. Optional.
 
 Triggers: `set_updated_at`, `stamp_actor_columns`, `audit.attach('materials')`.
 
@@ -211,9 +211,9 @@ Design choices:
 
 - **Signed quantity.** Entradas positive, salidas negative, ajustes either. Makes `current_stock = SUM(quantity)` true by construction; the AFTER INSERT trigger that updates `materials.current_stock` is a one-liner.
 - **No `updated_at`, no `deleted_at`.** Append-only. RLS forbids UPDATE/DELETE.
-- **`reason` required for `salida_manual` and `ajuste`.** Both are anomaly events — Dana writes "merma por accidente" or "ajuste post conteo físico". `salida_por_orden` has the work order folio as context, doesn't need a reason. `entrada` is usually obvious (recibo de proveedor) but `reason` is available for notes like "Pedido a Acme, factura 1234" until Phase 2 PO module ships.
+- **`reason` required for `salida_manual` and `ajuste`.** Both are anomaly events — Danna writes "merma por accidente" or "ajuste post conteo físico". `salida_por_orden` has the work order folio as context, doesn't need a reason. `entrada` is usually obvious (recibo de proveedor) but `reason` is available for notes like "Pedido a Acme, factura 1234" until Phase 2 PO module ships.
 - **`purchase_order_id` is a UUID column with no FK in MVP.** When the PO module ships, add the FK constraint via migration; existing rows have NULL and remain valid.
-- **Salidas can target cancelled or `entregado` orders.** No constraint on the parent order's status — Dana may legitimately backfill consumption that already happened, or record a salida and have the order cancelled later. The salida is real either way.
+- **Salidas can target cancelled or `entregado` orders.** No constraint on the parent order's status — Danna may legitimately backfill consumption that already happened, or record a salida and have the order cancelled later. The salida is real either way.
 
 #### Stock-update trigger
 
@@ -280,7 +280,7 @@ Numbering matches `docs/linear-phase-1.md` M5-1..M5-5 where possible. Acceptance
 
 **Implementation order**: M5-1 → M5-2 → M5-3 → M5-4 → M5-5 → M5-6 (→ LIT-98 last).
 
-M5-3 (CRUD) ships first after schema so Dana can populate the inventory by migrating from her Excel; without data, M5-5 (low-stock view) and M5-6 (link to order) have nothing to render.
+M5-3 (CRUD) ships first after schema so Danna can populate the inventory by migrating from her Excel; without data, M5-5 (low-stock view) and M5-6 (link to order) have nothing to render.
 
 > **Note**: this re-orders one ticket and adds one (M5-6) relative to `docs/linear-phase-1.md`. Update that file in the same PR as M5-1 lands so the public roadmap reflects the carve.
 
@@ -288,9 +288,9 @@ M5-3 (CRUD) ships first after schema so Dana can populate the inventory by migra
 
 ## 6. Open client questions
 
-Two items to confirm with Rolando and Dana before M5-1 lands. Neither blocks starting the migration; the answers can be back-patched cheaply.
+Two items to confirm with Rolando and Danna before M5-1 lands. Neither blocks starting the migration; the answers can be back-patched cheaply.
 
-1. **Material categories.** Are the six from SPEC §4.6 (Lonas, Vinil, Tintas, Sustratos, Papel, Estructura) the right grouping, or does Dana use a different one in her current Excel? If she has the Excel, copy the categories from there. Recommended approach: ship M5-1 with the six defaults, and Dana edits/adds via M5-3 once the CRUD lands. Categories are not load-bearing — the badge and low-stock view don't depend on them.
+1. **Material categories.** Are the six from SPEC §4.6 (Lonas, Vinil, Tintas, Sustratos, Papel, Estructura) the right grouping, or does Danna use a different one in her current Excel? If she has the Excel, copy the categories from there. Recommended approach: ship M5-1 with the six defaults, and Danna edits/adds via M5-3 once the CRUD lands. Categories are not load-bearing — the badge and low-stock view don't depend on them.
 2. **Single unit per material.** Confirm that "you buy a rollo of 50 m and consume in m" is _not_ a problem the system needs to model in Phase 1 — i.e., either (a) Prosesa converts mentally, or (b) materials are tracked in the unit they're consumed (m, not rollos). If the client pushes back and wants both units, escalate before M5-1 lands: it changes the schema (add `purchase_unit`, `consumption_unit`, `conversion_factor` to `materials`).
 
 ---

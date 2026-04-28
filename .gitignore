@@ -40,3 +40,4 @@ build
 
 # TanStack Router generated
 src/routeTree.gen.ts
+.tanstack/

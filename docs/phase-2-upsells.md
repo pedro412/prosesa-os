@@ -33,7 +33,7 @@ Each upsell captures:
 
 **What it is.** A configurable commission calculator. Per-vendor rates (fixed %, tabulator, or tiered by monto), cycle selection (monthly, per-nota, per-payment received), a "Comisiones del mes" report, and a lock/paid state so paid commissions aren't recalculated.
 
-**Why they'll say yes.** Gustavo explicitly asked for this in the 2026-04-22 demo: _"para revisar métricas de un vendedor o comisiones etc."_ By the time Phase 1 has been live 3 months, `sales_notes.vendor_id` will have 3 months of attribution data. Dana will already be running the calculation in Excel. Offering to do it in the system — with the same column she's already been looking at — is a layup.
+**Why they'll say yes.** Gustavo explicitly asked for this in the 2026-04-22 demo: _"para revisar métricas de un vendedor o comisiones etc."_ By the time Phase 1 has been live 3 months, `sales_notes.vendor_id` will have 3 months of attribution data. Danna will already be running the calculation in Excel. Offering to do it in the system — with the same column she's already been looking at — is a layup.
 
 **Depends on.** LIT-107 (vendor attribution) must have landed and be populated. That's the enabling move — no commissions engine without the vendor_id data.
 
@@ -45,7 +45,7 @@ Each upsell captures:
 
 **What it is.** A dashboard page showing: ranking of vendedores by monto vendido in the current period, metas vs actuals if metas are configured, trend lines per vendor, top customers per vendor.
 
-**Why they'll say yes.** Same lineage as commissions. Once Dana has `vendor_id` populated, she'll want to sort it, rank it, filter it. This is the natural "can we see this in a chart" follow-up after commissions land.
+**Why they'll say yes.** Same lineage as commissions. Once Danna has `vendor_id` populated, she'll want to sort it, rank it, filter it. This is the natural "can we see this in a chart" follow-up after commissions land.
 
 **Depends on.** LIT-107 + basic reporting infrastructure (Phase 2 #3 below).
 
@@ -107,11 +107,11 @@ Each upsell captures:
 
 ## 7. CFDI 4.0 Invoicing Automation — Deferred Indefinitely
 
-**What it is.** Automatic CFDI generation via Facturapi, replacing the manual Contpaqi workflow Dana runs today.
+**What it is.** Automatic CFDI generation via Facturapi, replacing the manual Contpaqi workflow Danna runs today.
 
 **Why they'd say yes.** Eliminates the Contpaqi round-trip. But see caveat.
 
-**Caveat (important).** Per CLAUDE.md §17 this is **deferred indefinitely** because Dana has explicitly said she wants to keep Contpaqi permanently. **Do not pitch this** unless Dana initiates the conversation. The `sales_notes.invoice_id` FK slot is kept in the schema for if that decision ever reverses; LIT-90 handles the pre-invoice data workbench + manual ledger as the Phase 1 answer.
+**Caveat (important).** Per CLAUDE.md §17 this is **deferred indefinitely** because Danna has explicitly said she wants to keep Contpaqi permanently. **Do not pitch this** unless Danna initiates the conversation. The `sales_notes.invoice_id` FK slot is kept in the schema for if that decision ever reverses; LIT-90 handles the pre-invoice data workbench + manual ledger as the Phase 1 answer.
 
 **Listed here only** so the possibility doesn't get lost if circumstances change.
 

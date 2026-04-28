@@ -139,12 +139,12 @@ export const salesNotesMessages = {
     triggerAria: 'Editar si la nota requiere factura',
     title: '¿Requiere factura?',
     description:
-      'Cambia si esta nota se debe facturar. Esto alimenta el flujo de facturación pendiente en el módulo de Dana.',
+      'Cambia si esta nota se debe facturar. Esto alimenta el flujo de facturación pendiente en el módulo de Danna.',
     switchLabel: 'Requiere factura',
     fiscal: {
       noCustomerTitle: 'Sin cliente adjunto',
       noCustomerDescription:
-        'Esta nota no tiene cliente; Dana tendrá que adjuntar uno antes de poder facturar.',
+        'Esta nota no tiene cliente; Danna tendrá que adjuntar uno antes de poder facturar.',
       incompleteTitle: 'Faltan datos fiscales del cliente',
       incompleteDescription: (fields: string) =>
         `Para facturar en Contpaqi, el cliente necesita: ${fields}. Puedes editar los datos del cliente desde la nota.`,

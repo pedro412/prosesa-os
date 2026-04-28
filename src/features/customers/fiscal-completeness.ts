@@ -4,7 +4,7 @@
 //     on and the attached customer isn't invoice-ready, the banner
 //     nudges the operator with "Completar datos fiscales" and tells
 //     them which specific fields are missing.
-//   * Dana's invoice-tracking workbench (LIT-90) — the
+//   * Danna's invoice-tracking workbench (LIT-90) — the
 //     "Marcar como facturada" button is disabled unless the customer
 //     hits `complete`.
 //

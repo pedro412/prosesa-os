@@ -15,7 +15,7 @@ export const settingsMessages = {
   companies: {
     sectionTitle: 'Razones sociales',
     sectionDescription:
-      'Datos de cada empresa para notas de venta, facturación y reportes. Confirma los valores con Dana antes del arranque.',
+      'Datos de cada empresa para notas de venta, facturación y reportes. Confirma los valores con Danna antes del arranque.',
     loading: 'Cargando empresas…',
     empty: 'Aún no hay empresas configuradas.',
     loadError: 'No se pudieron cargar las empresas.',

@@ -45,7 +45,7 @@ This section captures critical business knowledge gathered from multiple on-site
 
 ### 2.1 How the business operates today
 
-**Sales channels**: Customers arrive via WhatsApp, walk-in at the front desk, or through the sales team. Reception can quote simple jobs immediately. Complex jobs require Dana (the administrator) to review pricing because costs depend on current material prices from suppliers.
+**Sales channels**: Customers arrive via WhatsApp, walk-in at the front desk, or through the sales team. Reception can quote simple jobs immediately. Complex jobs require Danna (the administrator) to review pricing because costs depend on current material prices from suppliers.
 
 **Two types of sales**:
 
@@ -55,7 +55,7 @@ This section captures critical business knowledge gathered from multiple on-site
 **Pricing reality**: Not everything has a fixed price. There are three pricing models coexisting:
 
 - **Fixed catalog prices**: Stickers, business cards, standard prints — set price per unit.
-- **Variable cost pricing**: Structures, special banners, vehicle wraps — price depends on material type, current supplier cost, dimensions, and complexity. Dana must review these.
+- **Variable cost pricing**: Structures, special banners, vehicle wraps — price depends on material type, current supplier cost, dimensions, and complexity. Danna must review these.
 - **Negotiated prices**: Discounts are common. Sales staff negotiate with customers, especially for large or repeat orders.
 
 **Payment schemes**:
@@ -89,7 +89,7 @@ This section captures critical business knowledge gathered from multiple on-site
 | --------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Rolando         | Owner/Admin   | Oversees everything, checks production status by walking to workshop, reviews cash reconciliation                                 |
 | Guiguiola       | Owner/Admin   | Co-owner, involved in business decisions and financial oversight                                                                  |
-| Dana            | Administrator | Reviews pricing for complex jobs, manages purchases, checks material stock manually with production team, handles supplier quotes |
+| Danna           | Administrator | Reviews pricing for complex jobs, manages purchases, checks material stock manually with production team, handles supplier quotes |
 | Reception staff | Front desk    | Receives customers, creates handwritten notes, collects payments, handles phone/WhatsApp inquiries                                |
 | Sales staff     | Sales         | Visits clients, generates quotes, negotiates prices, follows up on pending quotes                                                 |
 
@@ -313,7 +313,7 @@ Cotizado → Anticipo recibido → En diseño → En producción → En instalac
 
 > **Implementation source of truth**: [`docs/m5-design.md`](./docs/m5-design.md). This SPEC section captures the business intent; the design doc resolves the operator model, schema shape, and Phase 1 scope (no BOM, no auto-deduction).
 
-**Purpose**: Give Dana 10-second visibility into stock so she can answer "do we have everything for this order?" without leaving her desk, and surface low-stock alerts before the next material problem repeats.
+**Purpose**: Give Danna 10-second visibility into stock so she can answer "do we have everything for this order?" without leaving her desk, and surface low-stock alerts before the next material problem repeats.
 
 **What is tracked**:
 
@@ -327,7 +327,7 @@ Cotizado → Anticipo recibido → En diseño → En producción → En instalac
 **Stock movement types**:
 
 - **Entrada** (stock in): Purchase received, manual restock.
-- **Salida por orden** (stock out - order): Operator-recorded decrement linked to a work order folio. Dana picks the material, the quantity, and the order it was consumed for.
+- **Salida por orden** (stock out - order): Operator-recorded decrement linked to a work order folio. Danna picks the material, the quantity, and the order it was consumed for.
 - **Salida manual** (stock out - manual): Damage, internal use, mermas. Reason required.
 - **Ajuste** (adjustment): Correction after physical count. Reason required.
 
@@ -335,7 +335,7 @@ Cotizado → Anticipo recibido → En diseño → En producción → En instalac
 
 **Salida por orden flow** (operator-driven):
 
-- Dana opens the inventory module (or the "Materiales consumidos" tab on a work order), picks the material, types the quantity, and selects/types the work order folio.
+- Danna opens the inventory module (or the "Materiales consumidos" tab on a work order), picks the material, types the quantity, and selects/types the work order folio.
 - A single `salida_por_orden` movement is recorded; the work order's full consumption is the set of movements joined by `work_order_id`.
 - If stock would go below zero, show an inline warning ("esta salida deja el stock en X") but do not block — the material may already have been physically pulled.
 - There is **no automatic decrement on work order status transitions** in Phase 1. Auto-decrement requires a bill-of-materials (BOM) linking catalog items to expected materials, which is Phase 2 (see `docs/m5-design.md` §7 and `docs/phase-2-upsells.md`).

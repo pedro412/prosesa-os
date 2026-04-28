@@ -166,7 +166,7 @@ export function posFormReducer(state: PosFormState, action: PosFormAction): PosF
       // the line row so catalog edits never rewrite historical notes).
       const unitPrice = item.pricing_mode === 'variable' ? 0 : Number(item.price)
       // catalog.cost is nullable + defaults to 0. Treat both 0 and
-      // null as "no cost data" so the POS hint stays quiet until Dana
+      // null as "no cost data" so the POS hint stays quiet until Danna
       // backfills a real cost on this item.
       const rawCost = item.cost == null ? null : Number(item.cost)
       const catalogCost = rawCost != null && rawCost > 0 ? rawCost : null
